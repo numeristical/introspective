@@ -1,0 +1,7 @@
+[run]
+branch = True
+source = ml_insights/*
+include = ml_insights/*
+omit = */setup.py
+[report]
+include = ml_insights/*
