@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
+from .utils import _gca
 
 def gen_model_pred(model, row, col_idx, values,classification=False):
     rows = []
@@ -15,12 +15,16 @@ def gen_model_pred(model, row, col_idx, values,classification=False):
     return y_pred, values
 
 def dependence_plot(model, dataset, column_num, pts_selected='sample', num_pts=5, col_values='auto',
-                       resolution = 100, show_base_pts=True, normalize_loc='none',classification=False, **kwargs):
+                       resolution = 100, show_base_pts=True, normalize_loc='none',classification=False,
+                       ax=None, **kwargs):
     '''This function visualizes the effect of a single variable in models with complicated dependencies.
     Given a dataset, it will select points in that dataset, and then change the select column across
     different values to view the effect of the model prediction given that variable.
     '''
     ## Convert Pandas DataFrame to nparray explicitly to make life easier
+    if ax is None:
+        ax = _gca()
+
     if type(dataset)==pd.DataFrame:
         dataset = dataset.values
 
@@ -38,7 +42,6 @@ def dependence_plot(model, dataset, column_num, pts_selected='sample', num_pts=5
     else:
         values_to_plot = np.array(col_values)
     ## Plot the lines
-    _, ax = plt.subplots(1, 1)
 
     for row in dataset[pts_chosen,:]:
         if classification:
@@ -61,9 +64,12 @@ def dependence_plot(model, dataset, column_num, pts_selected='sample', num_pts=5
             ax.scatter(dataset[pts_chosen,column_num],model.predict(dataset[pts_chosen,:]),**kwargs)
 
 def median_dependence_plot(model, dataset, column_num, pts_selected='sample', num_pts=100, col_values='auto',
-                       resolution = 100, **kwargs):
+                       resolution = 100, ax=None, **kwargs):
     '''This function attempts to characterize the "average" effect (and variation around) when a variable changes value.
     '''
+    if ax is None:
+        ax = _gca()
+
     ## Convert Pandas DataFrame to nparray explicitly to make life easier
     if type(dataset)==pd.DataFrame:
         dataset = dataset.values
@@ -103,7 +109,7 @@ def median_dependence_plot(model, dataset, column_num, pts_selected='sample', nu
     for j in range(len(values_xvec)):
         median_diff_vec[j] = np.median(pred_vals_diff[:,j])
     #plt.plot(values_xvec,np.cumsum(median_diff_vec),c='k',marker='_')
-    plt.plot(values_to_plot,(median_val_vec),c='k')
+    ax.plot(values_to_plot,(median_val_vec),c='k')
 
 
 

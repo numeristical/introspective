@@ -1,4 +1,11 @@
 def contig_table(vec1, vec2, normalize=None):
+    """Returns a Dataframe that's contingency table of two vectors.
+
+    Usage:
+    vec1 = np.random.binomial(10,.2,500)
+    vec2 = np.random.binomial(30,.3,500)
+    contig_table(asd,asd2)
+    """
     from collections import Counter
 
     vals1 = np.array(list(set(vec1)))  #This is faster than calling np.unique (at least for dtype = 'object')
@@ -21,8 +28,3 @@ def contig_table(vec1, vec2, normalize=None):
         output_array = output_array/np.tile(np.array([col_sums]),(dim1,1))
 
     return pd.DataFrame(data = output_array,index=vals1,columns=vals2)
-
-asd = np.random.binomial(10,.2,500)
-asd2 = np.random.binomial(30,.3,500)
-
-#contig_table(asd,asd2)

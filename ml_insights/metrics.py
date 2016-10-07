@@ -1,14 +1,18 @@
+"""
+Probability based metrics
+These metrics expect a predicted probability (pred_probs_vec) for each case
+And an answer (truth_vec)
+"""
 import numpy as np
 
-## Probability based metrics
-## These metrics expect a predicted probability (pred_probs_vec) for each case
-## And an answer (truth_vec)
-
 def log_lik(truth_vec,pred_probs_vec):
-    ## Should start by doing some checking
-    ## Assert both are of the same length
-    ## Assert pred_probs_vec and truth_vec are between 0 and 1
-    ## Warn (but not error) if truth_vec has values strictly between 0 and 1
+    """
+    TODO:
+    Should start by doing some checking
+    Assert both are of the same length
+    Assert pred_probs_vec and truth_vec are between 0 and 1
+    Warn (but not error) if truth_vec has values strictly between 0 and 1
+    """
     total_log_lik = np.sum(truth_vec*np.log(pred_probs_vec)+(1-truth_vec)*np.log(1-pred_probs_vec))
     return total_log_lik
 
@@ -36,10 +40,13 @@ def inverse_entropy_norm_lik(truth_vec,pred_probs_vec):
     return 1- inverse_binary_entropy_nats(-avg_log_lik(truth_vec,pred_probs_vec))
 
 
-## Ranking based metrics
 def exact_ROC_AUC(truth_vec,score_vec):
-    ## Should check that truth_vec and score_vec are same length
-    ## Should check that truth_vec is either 1 or 0
+    """
+    Ranking based metrics
+    TODO:
+    Should check that truth_vec and score_vec are same length
+    Should check that truth_vec is either 1 or 0
+    """
     scorevec1 = np.sort(score_vec[truth_vec==1])
     scorevec0 = np.sort(score_vec[truth_vec==0])
     len1 = len(scorevec1)
