@@ -16,12 +16,13 @@ def gen_model_pred(model, row, col_idx, values,classification=False):
 
 def dependence_plot(model, dataset, column_num, pts_selected='sample', num_pts=5, col_values='auto',
                        resolution = 100, show_base_pts=True, normalize_loc='none',classification=False,
-                       ax=None, **kwargs):
+                       ax=None, show_plot = True, **kwargs):
     '''This function visualizes the effect of a single variable in models with complicated dependencies.
     Given a dataset, it will select points in that dataset, and then change the select column across
     different values to view the effect of the model prediction given that variable.
     '''
     ## Convert Pandas DataFrame to nparray explicitly to make life easier
+    #print('hello!!!')
     if ax is None:
         ax = _gca()
 
@@ -41,9 +42,13 @@ def dependence_plot(model, dataset, column_num, pts_selected='sample', num_pts=5
         values_to_plot = np.linspace(np.min(dataset[:,column_num]),np.max(dataset[:,column_num]),resolution)
     else:
         values_to_plot = np.array(col_values)
+    
+    ## Define the empty data structure to output
+    out_matrix = np.zeros([num_pts,resolution])
+
     ## Plot the lines
 
-    for row in dataset[pts_chosen,:]:
+    for i,row in enumerate(dataset[pts_chosen,:]):
         if classification:
             y_pred, values = gen_model_pred(model, row, column_num, values_to_plot, classification=True)
         else:
@@ -54,14 +59,19 @@ def dependence_plot(model, dataset, column_num, pts_selected='sample', num_pts=5
             y_pred = y_pred - y_pred[-1]
         if (type(normalize_loc)==int and normalize_loc>=0 and normalize_loc<resolution):
             y_pred = y_pred - y_pred[normalize_loc]
-        ax.plot(values, y_pred)
-    if(show_base_pts and normalize_loc=='none'):
+        if show_plot:
+            ax.plot(values, y_pred)
+        out_matrix[i,:] = y_pred
+    if(show_base_pts and normalize_loc=='none' and show_plot):
         if classification:
             pred_vals = model.predict_proba(dataset[pts_chosen,:])[:,1]
-            ax.scatter(dataset[pts_chosen,column_num],model.predict_proba(dataset[pts_chosen,:])[:,1],**kwargs)
+            #ax.scatter(dataset[pts_chosen,column_num],model.predict_proba(dataset[pts_chosen,:])[:,1],**kwargs)
+            ax.scatter(dataset[pts_chosen,column_num],pred_vals,**kwargs)
         else:
             pred_vals = model.predict(dataset[pts_chosen,:])
-            ax.scatter(dataset[pts_chosen,column_num],model.predict(dataset[pts_chosen,:]),**kwargs)
+            #ax.scatter(dataset[pts_chosen,column_num],model.predict(dataset[pts_chosen,:]),**kwargs)
+            ax.scatter(dataset[pts_chosen,column_num],pred_vals,**kwargs)
+    return values, out_matrix
 
 def median_dependence_plot(model, dataset, column_num, pts_selected='sample', num_pts=100, col_values='auto',
                        resolution = 100, ax=None, **kwargs):
@@ -117,3 +127,12 @@ def median_dependence_plot(model, dataset, column_num, pts_selected='sample', nu
         plt.scatter(values_xvec,pred_vals_diff[j,:]+median_val_vec[1:]-median_diff_vec,**kwargs)
 
     return pred_vals,pred_vals_diff
+
+
+def importance_distribution_of_variable(model_result_array):
+    max_result_vec = np.array(list(map(np.max,model_result_array)))
+    min_result_vec = np.array(list(map(np.min,model_result_array)))
+    return max_result_vec - min_result_vec
+    
+
+
