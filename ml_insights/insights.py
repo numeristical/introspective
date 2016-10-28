@@ -1,22 +1,22 @@
 import math
 import numpy as np
 import pandas as pd
-from .utils import _gca
+from .utils import _gca, is_classifier, is_regressor
 
-def gen_model_pred(model, row, col_idx, values, is_classification=False):
+def gen_model_pred(model, row, col_idx, values):
     rows = []
     for val in values:
         sim_row = row.copy()
         sim_row[col_idx] = val
         rows.append(sim_row)
-    if is_classification:
+    if is_classifier(model):
         y_pred = model.predict_proba(rows)[:,1]
     else:
         y_pred = model.predict(rows)
     return y_pred
 
 
-def model_xray(model, data, columns=None, resolution=100, normalize_loc=None, is_classification=False, **kwargs):
+def model_xray(model, data, columns=None, resolution=100, normalize_loc=None, **kwargs):
     '''This function visualizes the effect of a single variable in models with complicated dependencies.
     Given a dataset, it will select points in that dataset, and then change the select column across
     different values to view the effect of the model prediction given that variable.
@@ -71,10 +71,9 @@ def model_xray(model, data, columns=None, resolution=100, normalize_loc=None, is
         ## Define the empty data structure to output
         out_matrix = np.zeros([num_pts,len(col_values)])
 
-        ## Plot the lines
-
+        ## Generate predictions
         for row_idx,row in enumerate(data):
-            y_pred = gen_model_pred(model, row, column_num, col_values, is_classification)
+            y_pred = gen_model_pred(model, row, column_num, col_values)
             if normalize_loc=='start':
                 y_pred = y_pred - y_pred[0]
             if normalize_loc=='end':
@@ -167,10 +166,7 @@ def dependence_plot(model, dataset, column_num, pts_selected='sample', num_pts=5
     ## Plot the lines
 
     for i,row in enumerate(dataset[pts_chosen,:]):
-        if classification:
-            y_pred = gen_model_pred(model, row, column_num, values, classification=True)
-        else:
-            y_pred = gen_model_pred(model, row, column_num, values)
+        y_pred = gen_model_pred(model, row, column_num, values)
         if normalize_loc=='start':
             y_pred = y_pred - y_pred[0]
         if normalize_loc=='end':
