@@ -16,7 +16,7 @@ def gen_model_pred(model, row, col_idx, values, is_classification=False):
     return y_pred
 
 
-def dependency_predictions(model, data, columns=None, resolution=100, normalize_loc=None, is_classification=False, **kwargs):
+def model_xray(model, data, columns=None, resolution=100, normalize_loc=None, is_classification=False, **kwargs):
     '''This function visualizes the effect of a single variable in models with complicated dependencies.
     Given a dataset, it will select points in that dataset, and then change the select column across
     different values to view the effect of the model prediction given that variable.
@@ -64,10 +64,12 @@ def dependency_predictions(model, data, columns=None, resolution=100, normalize_
     results = {}
     num_pts = len(data)
     for column_num, column_name in zip(column_nums, columns):
-        col_values = np.linspace(np.min(data[:,column_num]),np.max(data[:,column_num]),resolution)
-
+        if (len(np.unique(data[:,column_num]))> resolution):
+            col_values = np.linspace(np.min(data[:,column_num]),np.max(data[:,column_num]),resolution)
+        else:
+            col_values = np.sort(np.unique(data[:,column_num]))
         ## Define the empty data structure to output
-        out_matrix = np.zeros([num_pts,resolution])
+        out_matrix = np.zeros([num_pts,len(col_values)])
 
         ## Plot the lines
 
@@ -84,7 +86,7 @@ def dependency_predictions(model, data, columns=None, resolution=100, normalize_
     return results
 
 
-def dependency_plot(results, kind="boxh", ax=None, **kwargs):
+def feature_effect_summary(results, kind="boxh", ax=None, **kwargs):
     '''This function visualizes the effect of a single variable in models with complicated dependencies.
     Given a dataset, it will select points in that dataset, and then change the select column across
     different values to view the effect of the model prediction given that variable.
@@ -95,7 +97,7 @@ def dependency_plot(results, kind="boxh", ax=None, **kwargs):
         ax = _gca()
 
     columns = list(results.keys())
-    data = [results[col_name][1] for col_name in columns]
+    data = [importance_distribution_of_variable(results[col_name][1]) for col_name in columns]
     sortind = np.argsort([np.median(d) for d in data])
     data = [data[idx] for idx in sortind]
 
@@ -103,7 +105,7 @@ def dependency_plot(results, kind="boxh", ax=None, **kwargs):
     ax.set_yticklabels([columns[idx] for idx in sortind]);
 
 
-def dependency_lines(results, data=None, pts_selected='sample', num_pts=5, figsize=None):
+def feature_dependence_plots(results, data=None, pts_selected='sample', num_pts=5, figsize=None):
     '''This function visualizes the effect of a single variable in models with complicated dependencies.
     Given a dataset, it will select points in that dataset, and then change the select column across
     different values to view the effect of the model prediction given that variable.
@@ -112,13 +114,13 @@ def dependency_lines(results, data=None, pts_selected='sample', num_pts=5, figsi
     #print('hello!!!')
     import matplotlib.pyplot as plt
 
-    columns = list(results.keys())
+    columns = sorted(list(results.keys()))
     num_rows = len(results[columns[0]][1])  # Get number of sample rows
     row_indexes = np.random.choice(np.arange(num_rows), num_pts)
 
     n_cols = min(3, len(columns))
     n_rows = math.ceil(len(columns) / n_cols)
-    figsize = (n_rows * 4, n_cols * 4)
+    figsize = (n_cols * 4, n_rows * 4)
     fig, axes = plt.subplots(n_rows, n_cols, figsize=figsize)
     for col_name, ax in zip(columns, axes.flatten()):
         x = results[col_name][0]
