@@ -126,10 +126,31 @@ def model_xray(model, data, columns=None, resolution=100, normalize_loc=None, **
 
 
 def feature_effect_summary(results, kind="boxh", ax=None, num_features=20, **kwargs):
-    '''This function plots a comparison of the effects of different features in a predictive model.
+    '''This function plots a comparison of the effects of different features in a complex predictive model.
+
+    In more complicated predictive models, the effect of an individual feature can be highly dependent on the values
+    of the other features.  It could be that a feature has a large effect in one context but a negligible effect in another.
+    This visualization attempts to shed light on the range of possibilities of the effect of a feature, by giving a boxplot
+    showing the range of possibilities of the effect of a feature.
 
     The features are ranked by their "median" effect across a range of data points, where the "effect"
     is measured by the "peak to trough" distance that occurs as that feature varies across its possible range.
+
+    Parameters
+    ----------
+
+    results : This is a results object from a call to model_xray.  Ideally, the model_xray was given a reasonably large amount of data
+        so that we can empirically see a broad range of possibilities.
+
+    kind : Currently only 'boxh' (horizontal boxplot) is supported
+
+    ax : If desired, a particular axis on which to generate the plot can be passed to the function
+
+    num_features : This specifies the maximum number of features to include in the boxplot.  The function chooses the most significant
+        features as measured by the median peak-to-trough effect size.
+
+    Returns
+    -------
     '''
     ## Convert Pandas DataFrame to nparray explicitly to make life easier
     #print('hello!!!')
