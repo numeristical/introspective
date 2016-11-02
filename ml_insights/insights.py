@@ -104,7 +104,7 @@ def feature_effect_summary(results, kind="boxh", ax=None, **kwargs):
     ax.set_yticklabels([columns[idx] for idx in sortind]);
 
 
-def feature_dependence_plots(results, data=None, pts_selected='sample', num_pts=5, figsize=None):
+def feature_dependence_plots(results, model=None, data=None, pts_selected='sample', num_pts=5, figsize=None):
     '''This function visualizes the effect of a single variable in models with complicated dependencies.
     Given a dataset, it will select points in that dataset, and then change the select column across
     different values to view the effect of the model prediction given that variable.
@@ -117,6 +117,15 @@ def feature_dependence_plots(results, data=None, pts_selected='sample', num_pts=
     num_rows = len(results[columns[0]][1])  # Get number of sample rows
     row_indexes = np.random.choice(np.arange(num_rows), num_pts)
 
+    if data is not None:
+        base_rows = data.iloc[row_indexes]
+        if is_classifier(model):
+            y_base_points = model.predict_proba(base_rows)[:,1]
+        else:
+            y_base_points = model.predict(base_rows)
+    else:
+        y_base_points = None
+
     n_cols = min(3, len(columns))
     n_rows = math.ceil(len(columns) / n_cols)
     figsize = (n_cols * 4, n_rows * 4)
@@ -126,6 +135,9 @@ def feature_dependence_plots(results, data=None, pts_selected='sample', num_pts=
         y_values = results[col_name][1][row_indexes]
         for y in y_values:
             ax.plot(x, y)
+        # Plot Base Points
+        if y_base_points is not None:
+            ax.scatter(base_rows[col_name], y_base_points)
         ax.set_title(col_name)
     plt.tight_layout()
     return row_indexes
