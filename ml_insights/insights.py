@@ -230,3 +230,59 @@ def importance_distribution_of_variable(model_result_array):
     max_result_vec = np.array(list(map(np.max,model_result_array)))
     min_result_vec = np.array(list(map(np.min,model_result_array)))
     return max_result_vec - min_result_vec
+
+
+def path_between_points(data_row_1, data_row_2, model, tol=.001, verbose=True):
+    column_names = data_row_1.index
+    num_columns = len(column_names)
+    
+    dr_1 = data_row_1.values.reshape(1,-1)
+    dr_2 = data_row_2.values.reshape(1,-1)
+    column_list = list(range(num_columns))
+    curr_pt = np.copy(dr_1)
+    val1 = model.predict(dr_1)[0]
+    val2 = model.predict(dr_2)[0]
+    if verbose:
+        print('Your initial point has a target value of {}'.format(val1))
+        print('Your final point has a target value of {}'.format(val2))
+    pt_list = [dr_1]
+    val_list = [val1]
+    curr_val = val1
+    final_val = val2
+    feat_list =[]
+    move_list = []
+    feat_val_change_list = []
+    #for num_steps in range(4):
+    while (((curr_val/final_val) >(1+tol)) or ((curr_val/final_val) <(1-tol))):
+        biggest_move = 0
+        best_column = -1
+        best_val = curr_val
+        for i in column_list:
+            test_pt = np.copy(curr_pt)
+            prev_feat_val = test_pt[0,i]
+            subst_val = dr_2[0,i]
+            test_pt[0,i] = subst_val
+            test_val = model.predict(test_pt)[0]
+            move_size = (test_val - curr_val)
+            if(np.abs(move_size)>=np.abs(biggest_move)):
+                biggest_move = move_size
+                best_column = i
+                best_val = test_val
+                old_feat_val = prev_feat_val
+                new_feat_val = subst_val
+        subst_val = dr_2[0,best_column]
+        curr_pt[0,best_column] = subst_val
+        val_list.append(best_val)
+        curr_val = best_val
+        if verbose:
+            print('Changing {} from {} to {}'.format(column_names[best_column],old_feat_val,new_feat_val))
+            print('Changes your target by {} to {}'.format(biggest_move, best_val))
+            if not (((curr_val/final_val) >(1+tol)) or ((curr_val/final_val) <(1-tol))):
+                print('Tolerance of {} reached'.format(tol))
+                print('Current value of {} is within {}% of {}'.format(curr_val,(100*tol),final_val))
+        feat_list.append(column_names[best_column])
+        column_list.remove(best_column)
+        move_list.append(biggest_move)
+        feat_val_change_list.append((old_feat_val, new_feat_val))
+    return feat_list, feat_val_change_list, move_list, val_list
+    
