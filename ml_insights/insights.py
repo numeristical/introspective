@@ -124,7 +124,8 @@ def model_xray(model, data, columns=None, resolution=100, normalize_loc=None, **
     return results
 
 
-def feature_effect_summary(results, kind="boxh", ax=None, **kwargs):
+
+def feature_effect_summary(results, kind="boxh", ax=None, num_features=20, **kwargs):
     '''This function plots a comparison of the effects of different features in a predictive model.
 
     The features are ranked by their "median" effect across a range of data points, where the "effect"
@@ -132,16 +133,20 @@ def feature_effect_summary(results, kind="boxh", ax=None, **kwargs):
     '''
     ## Convert Pandas DataFrame to nparray explicitly to make life easier
     #print('hello!!!')
-    if ax is None:
-        ax = _gca()
-
     columns = list(results.keys())
     data = [importance_distribution_of_variable(results[col_name][1]) for col_name in columns]
     sortind = np.argsort([np.median(d) for d in data])
-    data = [data[idx] for idx in sortind]
+    if num_features and num_features > 0:
+        num_features = min(num_features, len(columns))
+    else:
+        num_features = len(columns)
+    data = [data[idx] for idx in sortind][:num_features]
 
-    n_feat = len(columns)
-    figsize = (12, n_feat * 1.2)
+    if ax is None:
+        ax = _gca()
+        fig = ax.get_figure()
+        fig.set_figwidth(10)
+        fig.set_figheight(max(6, math.ceil(num_features*0.5)))
     ax.boxplot(data, notch=0, sym='+', vert=0, whis=1.5)
     ax.set_yticklabels([columns[idx] for idx in sortind]);
 
