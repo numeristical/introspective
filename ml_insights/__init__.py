@@ -3,8 +3,8 @@ Package Docuemntation
 """
 # -*- coding: utf-8 -*-
 
-from .insights import model_xray, feature_effect_summary, feature_dependence_plots
+from .insights import ModelXRay
 
-__all__ = ["model_xray", "feature_effect_summary", "feature_dependence_plots"]
+__all__ = ["ModelXRay"]
 
 __version__ = '0.0.2'
