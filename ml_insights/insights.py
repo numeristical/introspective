@@ -226,16 +226,26 @@ class ModelXRay(object):
         return row_indexes
 
 
+    def path_between_points(self, index_1, index_2, tol=.001, verbose=True):
+
+        data_row_1 = self.data.iloc[index_1]
+        data_row_2 = self.data.iloc[index_2]
+        return path_between_points(self.model, data_row_1, data_row_2, tol, verbose)
+
+
 def importance_distribution_of_variable(model_result_array):
     max_result_vec = np.array(list(map(np.max,model_result_array)))
     min_result_vec = np.array(list(map(np.min,model_result_array)))
     return max_result_vec - min_result_vec
 
 
-def path_between_points(data_row_1, data_row_2, model, tol=.001, verbose=True):
+def path_between_points(model, data_row_1, data_row_2, tol=.001, verbose=True):
+    """
+    Explains the difference between model predictions of two different points
+    """
     column_names = data_row_1.index
     num_columns = len(column_names)
-    
+
     dr_1 = data_row_1.values.reshape(1,-1)
     dr_2 = data_row_2.values.reshape(1,-1)
     column_list = list(range(num_columns))
@@ -285,4 +295,4 @@ def path_between_points(data_row_1, data_row_2, model, tol=.001, verbose=True):
         move_list.append(biggest_move)
         feat_val_change_list.append((old_feat_val, new_feat_val))
     return feat_list, feat_val_change_list, move_list, val_list
-    
+
