@@ -17,9 +17,48 @@ def gen_model_pred(model, row, col_idx, values):
 
 
 def model_xray(model, data, columns=None, resolution=100, normalize_loc=None, **kwargs):
-    '''This function visualizes the effect of a single variable in models with complicated dependencies.
-    Given a dataset, it will select points in that dataset, and then change the select column across
-    different values to view the effect of the model prediction given that variable.
+    '''This function executes a model over a broad range of conditions to analyze aspects of its performance.
+
+    For each point in the data set, and for every feature involved of the prediction of the model, a new set of data
+    points is created where the chosen feature is varied across its (empirical) range.  These modified data points are
+    fed into the model to get a set of model predictions for each feature-data point combination.
+
+    It is desirable that the "data" object passed in be relatively large in size, since the algorithm will make
+    some heuristic choices based on the ranges of values it sees.  We suggest using at least 100 data points and preferably
+    more than 500.
+
+    It returns a results object, which can then be passed to functions such as feature_effect_summary and
+    feature_dependence_plots to gain insight on the how the various features affect the target.  The results
+    object can also be used directly by a user who wants to operate at a low-level.
+
+    Parameters
+    ----------
+
+    model : A model object from sklearn or similar styled objects.  The `predict` method will be used if it is
+        a regression model, while `predict_proba` will be used if it is a (binary) classification model.  Multi-class
+        classifiers are not supported at this time.
+
+    data : A DataFrame possessing the same structure that the model would take as an argument.  These methods are designed
+        to be used on "test" data (i.e. data that was not used in the training of the model).  However, there is nothing
+        structural to prevent it from being used on training data, and there may be some insight gained by doing so.
+
+    columns : a specific subset of columns to be used.  Default is None, which means to use all available columns in *data*
+
+    resolution : how many different "grid points" to use for each feature.  The algorithm will use only the unique values
+    it sees in *data* if there are fewer than *resolution* unique values.  Otherwise it will use *resolution* linearly spaced 
+    values ranging from the min observed value to the max observed value.
+    
+    Returns
+    -------
+
+    results : The "results" object is a dictionary where the keys are the feature names and the values are a 2-tuple.  This
+        object is intended primarily to be passed to other functions to interact with and display the data.  However, advanced
+        users may wish to understand and/or use the object directly.
+
+        The first element in the tuple is the set of different feature values that were substituted in for each data point.  The
+        second element in the tuple is matrix where the number of rows is the number of data points and the number of columns
+        is the number of different feature values.  The (i,j)th element of the matrix is the result of the model prediction when
+        data point i has the feature in question set to jth value.
     '''
     ## Convert Pandas DataFrame to nparray explicitly to make life easier
     #print('hello!!!')
@@ -85,21 +124,29 @@ def model_xray(model, data, columns=None, resolution=100, normalize_loc=None, **
     return results
 
 
-def feature_effect_summary(results, kind="boxh", ax=None, **kwargs):
-    '''This function visualizes the effect of a single variable in models with complicated dependencies.
-    Given a dataset, it will select points in that dataset, and then change the select column across
-    different values to view the effect of the model prediction given that variable.
+
+def feature_effect_summary(results, kind="boxh", ax=None, num_features=20, **kwargs):
+    '''This function plots a comparison of the effects of different features in a predictive model.
+
+    The features are ranked by their "median" effect across a range of data points, where the "effect"
+    is measured by the "peak to trough" distance that occurs as that feature varies across its possible range.
     '''
     ## Convert Pandas DataFrame to nparray explicitly to make life easier
     #print('hello!!!')
-    if ax is None:
-        ax = _gca()
-
     columns = list(results.keys())
     data = [importance_distribution_of_variable(results[col_name][1]) for col_name in columns]
     sortind = np.argsort([np.median(d) for d in data])
-    data = [data[idx] for idx in sortind]
+    if num_features and num_features > 0:
+        num_features = min(num_features, len(columns))
+    else:
+        num_features = len(columns)
+    data = [data[idx] for idx in sortind][:num_features]
 
+    if ax is None:
+        ax = _gca()
+        fig = ax.get_figure()
+        fig.set_figwidth(10)
+        fig.set_figheight(max(6, math.ceil(num_features*0.5)))
     ax.boxplot(data, notch=0, sym='+', vert=0, whis=1.5)
     ax.set_yticklabels([columns[idx] for idx in sortind]);
 
