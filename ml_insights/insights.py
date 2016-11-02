@@ -85,21 +85,27 @@ def model_xray(model, data, columns=None, resolution=100, normalize_loc=None, **
     return results
 
 
-def feature_effect_summary(results, kind="boxh", ax=None, **kwargs):
+def feature_effect_summary(results, kind="boxh", ax=None, num_features=20, **kwargs):
     '''This function visualizes the effect of a single variable in models with complicated dependencies.
     Given a dataset, it will select points in that dataset, and then change the select column across
     different values to view the effect of the model prediction given that variable.
     '''
     ## Convert Pandas DataFrame to nparray explicitly to make life easier
     #print('hello!!!')
-    if ax is None:
-        ax = _gca()
-
     columns = list(results.keys())
     data = [importance_distribution_of_variable(results[col_name][1]) for col_name in columns]
     sortind = np.argsort([np.median(d) for d in data])
-    data = [data[idx] for idx in sortind]
+    if num_features and num_features > 0:
+        num_features = min(num_features, len(columns))
+    else:
+        num_features = len(columns)
+    data = [data[idx] for idx in sortind][:num_features]
 
+    if ax is None:
+        ax = _gca()
+        fig = ax.get_figure()
+        fig.set_figwidth(10)
+        fig.set_figheight(max(6, math.ceil(num_features*0.5)))
     ax.boxplot(data, notch=0, sym='+', vert=0, whis=1.5)
     ax.set_yticklabels([columns[idx] for idx in sortind]);
 
