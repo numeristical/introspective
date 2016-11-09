@@ -14,24 +14,21 @@ Contents:
 Installation:
 -------------
 
-```
-pip install ml_insights
-```
+.. code-block:: bash
+
+    $ pip install ml_insights
+
 
 Usage:
 ------
 
-```
-import ml_insights as mli
+.. code-block:: python
 
-xray = mli.ModelXRay(model, data)
-```
+    >>> import ml_insights as mli
+    >>> xray = mli.ModelXRay(model, data)
 
 API Docs:
 ---------
-
-ml_insights.insights module
----------------------------
 
 .. autoclass:: ml_insights.ModelXRay
    :members:
