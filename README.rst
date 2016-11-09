@@ -36,10 +36,11 @@ License:
 
 Free software: MIT license
 
-Development Lead
-----------------
+Developed By:
+------------
 
-Brian Lucena & Ramesh Sampath
+* Brian Lucena
+* Ramesh Sampath
 
 Features
 --------
