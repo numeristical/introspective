@@ -31,7 +31,15 @@ Documentation:
 
 https://ml-insights.readthedocs.io.
 
-* Free software: MIT license
+License:
+--------
+
+Free software: MIT license
+
+Development Lead
+----------------
+
+Brian Lucena & Ramesh Sampath
 
 Features
 --------
