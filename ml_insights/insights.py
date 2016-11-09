@@ -226,11 +226,11 @@ class ModelXRay(object):
         return row_indexes
 
 
-    def path_between_points(self, index_1, index_2, tol=.001, verbose=True):
+    def explain_prediction_difference(self, index_1, index_2, tol=.03, verbose=True):
 
         data_row_1 = self.data.iloc[index_1]
         data_row_2 = self.data.iloc[index_2]
-        return path_between_points(self.model, data_row_1, data_row_2, tol, verbose)
+        return explain_prediction_difference(self.model, data_row_1, data_row_2, tol, verbose)
 
 
 def importance_distribution_of_variable(model_result_array):
@@ -239,7 +239,7 @@ def importance_distribution_of_variable(model_result_array):
     return max_result_vec - min_result_vec
 
 
-def path_between_points(model, data_row_1, data_row_2, tol=.001, verbose=True):
+def explain_prediction_difference(model, data_row_1, data_row_2, tol=.03, verbose=True, decimals = 4):
     """
     Explains the difference between model predictions of two different points
     """
@@ -250,11 +250,15 @@ def path_between_points(model, data_row_1, data_row_2, tol=.001, verbose=True):
     dr_2 = data_row_2.values.reshape(1,-1)
     column_list = list(range(num_columns))
     curr_pt = np.copy(dr_1)
-    val1 = model.predict(dr_1)[0]
-    val2 = model.predict(dr_2)[0]
+    if is_classifier(model):
+        val1 = model.predict_proba(dr_1)[0,1]
+        val2 = model.predict_proba(dr_2)[0,1]
+    else:
+        val1 = model.predict(dr_1)[0]
+        val2 = model.predict(dr_2)[0]
     if verbose:
-        print('Your initial point has a target value of {}'.format(val1))
-        print('Your final point has a target value of {}'.format(val2))
+        print('Your initial point has a target value of {}'.format(np.round(val1,decimals=decimals)))
+        print('Your final point has a target value of {}'.format(np.round(val2,decimals=decimals)))
     pt_list = [dr_1]
     val_list = [val1]
     curr_val = val1
@@ -272,7 +276,10 @@ def path_between_points(model, data_row_1, data_row_2, tol=.001, verbose=True):
             prev_feat_val = test_pt[0,i]
             subst_val = dr_2[0,i]
             test_pt[0,i] = subst_val
-            test_val = model.predict(test_pt)[0]
+            if is_classifier(model):
+                test_val = model.predict_proba(test_pt)[0,1]
+            else:
+                test_val = model.predict(test_pt)[0]
             move_size = (test_val - curr_val)
             if(np.abs(move_size)>=np.abs(biggest_move)):
                 biggest_move = move_size
@@ -285,11 +292,12 @@ def path_between_points(model, data_row_1, data_row_2, tol=.001, verbose=True):
         val_list.append(best_val)
         curr_val = best_val
         if verbose:
-            print('Changing {} from {} to {}'.format(column_names[best_column],old_feat_val,new_feat_val))
-            print('Changes your target by {} to {}'.format(biggest_move, best_val))
+            print('Changing {} from {} to {}'.format(column_names[best_column],np.round(old_feat_val,decimals=decimals),np.round(new_feat_val,decimals=decimals)))
+            print('\t\tchanges your target by {} to {}'.format(np.round(biggest_move,decimals=decimals), np.round(best_val,decimals=decimals)))
+            print('----------')
             if not (((curr_val/final_val) >(1+tol)) or ((curr_val/final_val) <(1-tol))):
                 print('Tolerance of {} reached'.format(tol))
-                print('Current value of {} is within {}% of {}'.format(curr_val,(100*tol),final_val))
+                print('Current value of {} is within {}% of {}'.format(np.round(curr_val,decimals=decimals),(100*tol),np.round(final_val,decimals=decimals)))
         feat_list.append(column_names[best_column])
         column_list.remove(best_column)
         move_list.append(biggest_move)
