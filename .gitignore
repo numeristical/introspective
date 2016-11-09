@@ -68,3 +68,6 @@ docs/_build/
 
 # PyBuilder
 target/
+
+# local
+local/

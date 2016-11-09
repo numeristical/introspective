@@ -1,4 +1,5 @@
 import math
+import warnings
 import numpy as np
 import pandas as pd
 from .utils import _gca, is_classifier, is_regressor
@@ -20,16 +21,36 @@ class ModelXRay(object):
         self.columns = columns
         self.results = self._model_xray(columns, resolution, normalize_loc)
 
+
+    def _get_data_rows(self, row_nums):
+        if type(self.data) == pd.DataFrame:
+            return self.data.iloc[row_nums]
+        else:
+            return self.data[row_nums, :]
+
+
+    def _get_predictions(self, rows):
+        # Catch deprecated warnings from Predict call
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+
+            if is_classifier(self.model):
+                y_pred = self.model.predict_proba(rows)[:,1]
+            else:
+                y_pred = self.model.predict(rows)
+        return y_pred
+
+
     def gen_model_pred(self, row, col_idx, values):
         rows = []
         for val in values:
             sim_row = row.copy()
             sim_row[col_idx] = val
             rows.append(sim_row)
-        if is_classifier(self.model):
-            y_pred = self.model.predict_proba(rows)[:,1]
-        else:
-            y_pred = self.model.predict(rows)
+        # If the row is a Series, make it into a DF
+        if type(rows[0]) == pd.Series:
+            rows = pd.DataFrame(rows)
+        y_pred = self._get_predictions(rows)
         return y_pred
 
 
@@ -127,7 +148,11 @@ class ModelXRay(object):
             out_matrix = np.zeros([num_pts,len(col_values)])
 
             ## Generate predictions
-            for row_idx,row in enumerate(self.data_values):
+            if type(self.data) == pd.DataFrame:
+                rows = self.data.iterrows()
+            else:
+                rows = enumerate(self.data)
+            for loop_idx, (row_idx, row) in enumerate(rows):
                 y_pred = self.gen_model_pred(row, column_num, col_values)
                 if normalize_loc=='start':
                     y_pred = y_pred - y_pred[0]
@@ -135,7 +160,7 @@ class ModelXRay(object):
                     y_pred = y_pred - y_pred[-1]
                 if (type(normalize_loc)==int and normalize_loc>=0 and normalize_loc<resolution):
                     y_pred = y_pred - y_pred[normalize_loc]
-                out_matrix[row_idx,:] = y_pred
+                out_matrix[loop_idx,:] = y_pred
             results[column_name] = (col_values, out_matrix)
         return results
 
@@ -201,11 +226,8 @@ class ModelXRay(object):
         row_indexes = np.random.choice(np.arange(num_rows), num_pts)
 
         if show_base_points:
-            base_rows = self.data.iloc[row_indexes]
-            if is_classifier(self.model):
-                y_base_points = self.model.predict_proba(base_rows)[:,1]
-            else:
-                y_base_points = self.model.predict(base_rows)
+            base_rows = self._get_data_rows(row_indexes)
+            y_base_points = self._get_predictions(base_rows)
         else:
             y_base_points = None
 
@@ -228,8 +250,8 @@ class ModelXRay(object):
 
     def path_between_points(self, index_1, index_2, tol=.001, verbose=True):
 
-        data_row_1 = self.data.iloc[index_1]
-        data_row_2 = self.data.iloc[index_2]
+        data_row_1 = self._get_data_rows(index_1)
+        data_row_2 = self._get_data_rows(index_2)
         return path_between_points(self.model, data_row_1, data_row_2, tol, verbose)
 
 
