@@ -24,7 +24,7 @@ Usage:
 Examples:
 ---------
 
-https://github.com/numeristical/introspective/examples/
+[Notebook Examples and Useage](examples/)
 
 Documentation:
 --------------
