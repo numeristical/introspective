@@ -6,10 +6,41 @@ from .utils import _gca, is_classifier, is_regressor
 
 
 class ModelXRay(object):
-    """Documentation for Class
+    """This function executes a model over a broad range of conditions to analyze aspects of its performance.
+
+    For each point in the data set, and for every feature involved of the prediction of the model, a new set of data
+    points is created where the chosen feature is varied across its (empirical) range.  These modified data points are
+    fed into the model to get a set of model predictions for each feature-data point combination.
+
+    It is desirable that the "data" object passed in be relatively large in size, since the algorithm will make
+    some heuristic choices based on the ranges of values it sees.  We suggest using at least 100 data points and preferably
+    more than 500.
+
+    It returns a results object, which can then be passed to functions such as feature_effect_summary and
+    feature_dependence_plots to gain insight on the how the various features affect the target.  The results
+    object can also be used directly by a user who wants to operate at a low-level.
+
+       Parameters
+        ----------
+
+
+        model : A model object from sklearn or similar styled objects.  The `predict` method will be used if it is
+            a regression model, while `predict_proba` will be used if it is a (binary) classification model.  Multi-class
+            classifiers are not supported at this time.
+
+        data : A DataFrame possessing the same structure that the model would take as an argument.  These methods are designed
+            to be used on "test" data (i.e. data that was not used in the training of the model).  However, there is nothing
+            structural to prevent it from being used on training data, and there may be some insight gained by doing so.
+
+        columns : a specific subset of columns to be used.  Default is None, which means to use all available columns in *data*
+
+        resolution : how many different "grid points" to use for each feature.  The algorithm will use only the unique values
+        it sees in *data* if there are fewer than *resolution* unique values.  Otherwise it will use *resolution* linearly spaced
+        values ranging from the min observed value to the max observed value.
     """
 
     def __init__(self, model, data, columns=None, resolution=100, normalize_loc=None):
+
         self.model = model
         self.data = data
 
@@ -69,35 +100,35 @@ class ModelXRay(object):
         feature_dependence_plots to gain insight on the how the various features affect the target.  The results
         object can also be used directly by a user who wants to operate at a low-level.
 
-        Parameters
-        ----------
+            Parameters
+            ----------
 
-        model : A model object from sklearn or similar styled objects.  The `predict` method will be used if it is
-            a regression model, while `predict_proba` will be used if it is a (binary) classification model.  Multi-class
-            classifiers are not supported at this time.
+            model : A model object from sklearn or similar styled objects.  The `predict` method will be used if it is
+                a regression model, while `predict_proba` will be used if it is a (binary) classification model.  Multi-class
+                classifiers are not supported at this time.
 
-        data : A DataFrame possessing the same structure that the model would take as an argument.  These methods are designed
-            to be used on "test" data (i.e. data that was not used in the training of the model).  However, there is nothing
-            structural to prevent it from being used on training data, and there may be some insight gained by doing so.
+            data : A DataFrame possessing the same structure that the model would take as an argument.  These methods are designed
+                to be used on "test" data (i.e. data that was not used in the training of the model).  However, there is nothing
+                structural to prevent it from being used on training data, and there may be some insight gained by doing so.
 
-        columns : a specific subset of columns to be used.  Default is None, which means to use all available columns in *data*
+            columns : a specific subset of columns to be used.  Default is None, which means to use all available columns in *data*
 
-        resolution : how many different "grid points" to use for each feature.  The algorithm will use only the unique values
-        it sees in *data* if there are fewer than *resolution* unique values.  Otherwise it will use *resolution* linearly spaced
-        values ranging from the min observed value to the max observed value.
+            resolution : how many different "grid points" to use for each feature.  The algorithm will use only the unique values
+            it sees in *data* if there are fewer than *resolution* unique values.  Otherwise it will use *resolution* linearly spaced
+            values ranging from the min observed value to the max observed value.
 
-        Returns
-        -------
+            Returns
+            -------
 
-        results : The "results" object is a dictionary where the keys are the feature names and the values are a 2-tuple.  This
-            object is intended primarily to be passed to other functions to interact with and display the data.  However, advanced
-            users may wish to understand and/or use the object directly.
+            results : The "results" object is a dictionary where the keys are the feature names and the values are a 2-tuple.  This
+                object is intended primarily to be passed to other functions to interact with and display the data.  However, advanced
+                users may wish to understand and/or use the object directly.
 
-            The first element in the tuple is the set of different feature values that were substituted in for each data point.  The
-            second element in the tuple is matrix where the number of rows is the number of data points and the number of columns
-            is the number of different feature values.  The (i,j)th element of the matrix is the result of the model prediction when
-            data point i has the feature in question set to jth value.
-        '''
+                The first element in the tuple is the set of different feature values that were substituted in for each data point.  The
+                second element in the tuple is matrix where the number of rows is the number of data points and the number of columns
+                is the number of different feature values.  The (i,j)th element of the matrix is the result of the model prediction when
+                data point i has the feature in question set to jth value.
+            '''
         ## Convert Pandas DataFrame to nparray explicitly to make life easier
         #print('hello!!!')
 
@@ -176,21 +207,21 @@ class ModelXRay(object):
         The features are ranked by their "median" effect across a range of data points, where the "effect"
         is measured by the "peak to trough" distance that occurs as that feature varies across its possible range.
 
-        Parameters
-        ----------
+            Parameters
+            ----------
 
-        results : This is a results object from a call to model_xray.  Ideally, the model_xray was given a reasonably large amount of data
-            so that we can empirically see a broad range of possibilities.
+            results : This is a results object from a call to model_xray.  Ideally, the model_xray was given a reasonably large amount of data
+                so that we can empirically see a broad range of possibilities.
 
-        kind : Currently only 'boxh' (horizontal boxplot) is supported
+            kind : Currently only 'boxh' (horizontal boxplot) is supported
 
-        ax : If desired, a particular axis on which to generate the plot can be passed to the function
+            ax : If desired, a particular axis on which to generate the plot can be passed to the function
 
-        num_features : This specifies the maximum number of features to include in the boxplot.  The function chooses the most significant
-            features as measured by the median peak-to-trough effect size.
+            num_features : This specifies the maximum number of features to include in the boxplot.  The function chooses the most significant
+                features as measured by the median peak-to-trough effect size.
 
-        Returns
-        -------
+            Returns
+            -------
         '''
         ## Convert Pandas DataFrame to nparray explicitly to make life easier
         #print('hello!!!')
