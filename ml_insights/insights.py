@@ -215,10 +215,12 @@ class ModelXRay(object):
     def feature_dependence_plots(self, show_base_points=True, pts_selected='sample', num_pts=5, figsize=None):
         '''This function visualizes the effect of a single variable in models with complicated dependencies.
         Given a dataset, it will select points in that dataset, and then change the select column across
-        different values to view the effect of the model prediction given that variable.
+        different values to view the effect of the model prediction given that variable. These have been called
+        Individual Conditional Expectation plots (or ICE-plots), see Goldstein, Kapelner, Bleich, 
+        Pitkin. Peeking Inside the Black Box: Visualizing Statistical Learning With Plots of Individual 
+        Conditional Expectation. Journal of Computational and Graphical Statistics (March 2014)
         '''
-        ## Convert Pandas DataFrame to nparray explicitly to make life easier
-        #print('hello!!!')
+        
         import matplotlib.pyplot as plt
 
         columns = sorted(list(self.results.keys()))
