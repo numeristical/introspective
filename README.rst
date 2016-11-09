@@ -24,7 +24,7 @@ Usage:
 Examples:
 ---------
 
-[Notebook Examples and Useage](examples/)
+`Notebook Examples and Useage <examples/>`_
 
 Documentation:
 --------------
