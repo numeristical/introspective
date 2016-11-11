@@ -1,6 +1,5 @@
-============
 ML Insights
-============
+===========
 
 Package to understand ML Models
 
@@ -31,6 +30,11 @@ Documentation:
 --------------
 
 https://ml-insights.readthedocs.io.
+
+Source:
+-------
+
+https://github.com/numeristical/introspective.
 
 License:
 --------

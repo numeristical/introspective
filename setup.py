@@ -22,7 +22,7 @@ setup(
     long_description=readme + '\n\n' + history,
     author="Ramesh Sampath / Brian Lucena",
     author_email='.',
-    url='https://github.com/numeristical/introspective',
+    url='http://ml-insights.readthedocs.io/en/latest/',
     packages=[
         'ml_insights',
     ],
