@@ -27,16 +27,15 @@ Usage:
     >>> import ml_insights as mli
     >>> xray = mli.ModelXRay(model, data)
 
+Examples:
+---------
+
+`Use cases and How-To Examples
+<https://github.com/numeristical/introspective/tree/master/examples>`_.
+
+
 API Docs:
 ---------
 
 .. autoclass:: ml_insights.ModelXRay
    :members:
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
-

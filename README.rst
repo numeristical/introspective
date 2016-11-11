@@ -25,7 +25,6 @@ Examples:
 ---------
 
 `Notebook Examples and Useage <examples/>`_
-https://github.com/numeristical/introspective/tree/master/examples
 
 
 Documentation:
@@ -36,7 +35,7 @@ https://ml-insights.readthedocs.io.
 License:
 --------
 
-Free software: MIT license
+Free software: `MIT license <LICENSE>`_
 
 Developed By:
 ------------
