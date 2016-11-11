@@ -25,6 +25,8 @@ Examples:
 ---------
 
 `Notebook Examples and Useage <examples/>`_
+https://github.com/numeristical/introspective/tree/master/examples
+
 
 Documentation:
 --------------
@@ -42,7 +44,7 @@ Developed By:
 * Brian Lucena
 * Ramesh Sampath
 
-Features
+References
 --------
 
-* TODO
+Alex Goldstein, Adam Kapelner, Justin Bleich, and Emil Pitkin. 2014. Peeking Inside the Black Box: Visualizing Statistical Learning With Plots of Individual Conditional Expectation. Journal of Computational and Graphical Statistics (March 2014)

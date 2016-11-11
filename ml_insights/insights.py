@@ -6,7 +6,7 @@ from .utils import _gca, is_classifier, is_regressor
 
 
 class ModelXRay(object):
-    """This function executes a model over a broad range of conditions to analyze aspects of its performance.
+    """This class executes a model over a broad range of modified data points to analyze aspects of its performance.
 
     For each point in the data set, and for every feature involved of the prediction of the model, a new set of data
     points is created where the chosen feature is varied across its (empirical) range.  These modified data points are
@@ -83,7 +83,6 @@ class ModelXRay(object):
             rows = pd.DataFrame(rows)
         y_pred = self._get_predictions(rows)
         return y_pred
-
 
     def _model_xray(self, columns, resolution, normalize_loc):
         '''This function executes a model over a broad range of conditions to analyze aspects of its performance.
@@ -224,7 +223,7 @@ class ModelXRay(object):
             -------
         '''
         ## Convert Pandas DataFrame to nparray explicitly to make life easier
-        #print('hello!!!')
+        
         columns = list(self.results.keys())
         result_data = [importance_distribution_of_variable(self.results[col_name][1]) for col_name in columns]
         sortind = np.argsort([np.median(d) for d in result_data])
@@ -232,7 +231,7 @@ class ModelXRay(object):
             num_features = min(num_features, len(columns))
         else:
             num_features = len(columns)
-        plot_data = [result_data[idx] for idx in sortind][:num_features]
+        plot_data = [result_data[idx] for idx in sortind][-num_features:]
 
         if ax is None:
             ax = _gca()
@@ -240,7 +239,7 @@ class ModelXRay(object):
             fig.set_figwidth(10)
             fig.set_figheight(max(6, math.ceil(num_features*0.5)))
         ax.boxplot(plot_data, notch=0, sym='+', vert=0, whis=1.5)
-        ax.set_yticklabels([columns[idx] for idx in sortind]);
+        ax.set_yticklabels([columns[idx] for idx in sortind][-num_features:]);
 
 
     def feature_dependence_plots(self, show_base_points=True, pts_selected='sample', num_pts=5, figsize=None):
@@ -256,7 +255,10 @@ class ModelXRay(object):
 
         columns = sorted(list(self.results.keys()))
         num_rows = len(self.results[columns[0]][1])  # Get number of sample rows
-        row_indexes = np.random.choice(np.arange(num_rows), num_pts)
+        if (type(pts_selected)==str and pts_selected=='sample'):
+            row_indexes = np.random.choice(np.arange(num_rows), num_pts)
+        else:
+            row_indexes = pts_selected
 
         if show_base_points:
             base_rows = self._get_data_rows(row_indexes)
@@ -282,7 +284,15 @@ class ModelXRay(object):
 
 
     def explain_prediction_difference(self, index_1, index_2, tol=.03, verbose=True):
+        '''Given the indices of two points in the "xray"-ed data set, this function gives an explanation
+        of the factors contributing to the difference in the predictions.
 
+        Starting with the first point given, the considers changing each feature from its current value to that 
+        possessed by the second point.  The function evaluates the target in both scenarios and determines the
+        feature value change that creates the biggest (absolute) change in the target.  This change is selected 
+        and the current point becomes the new point with the new feature value.  This is repeated until the new 
+        target value is within a factor of 1+tol of the second point.
+        '''
         data_row_1 = self._get_data_rows(index_1)
         data_row_2 = self._get_data_rows(index_2)
         return explain_prediction_difference(self.model, data_row_1, data_row_2, tol, verbose)
@@ -295,9 +305,15 @@ def importance_distribution_of_variable(model_result_array):
 
 
 def explain_prediction_difference(model, data_row_1, data_row_2, tol=.03, verbose=True, decimals = 4):
-    """
-    Explains the difference between model predictions of two different points
-    """
+    '''Given a model and two single row data frames, this function gives an explanation
+        of the factors contributing to the difference in the predictions.
+
+        Starting with the first point given, the considers changing each feature from its current value to that 
+        possessed by the second point.  The function evaluates the target in both scenarios and determines the
+        feature value change that creates the biggest (absolute) change in the target.  This change is selected 
+        and the current point becomes the new point with the new feature value.  This is repeated until the new 
+        target value is within a factor of 1+tol of the second point.
+        '''
     column_names = data_row_1.index
     num_columns = len(column_names)
 
