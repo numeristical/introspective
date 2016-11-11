@@ -3,16 +3,23 @@ ML Insights
 
 Package to understand ML Models
 
-Installation:
--------------
+
+Disclaimer
+==========
+
+We have tested this tool to the best of my ability, but understand that it may have bugs. Use at your own risk!
+
+
+Installation
+=============
 
 .. code-block:: bash
 
     $ pip install ml_insights
 
 
-Usage:
-------
+Usage
+======
 
 .. code-block:: python
 
@@ -20,34 +27,39 @@ Usage:
     >>> xray = mli.ModelXRay(model, data)
 
 
-Examples:
----------
+Source
+======
 
-`Notebook Examples and Useage <examples/>`_
+Find the latest version on github: https://github.com/numeristical/introspective
+
+Feel free to fork and contribute!
+
+Documentation
+==============
+
+- `API Docs <https://ml-insights.readthedocs.io>`_
+- `Notebook Examples and Usage <examples/>`_
+
+Requirements
+============
+
+Python
+------
+Python 2.7 and 3.4+
 
 
-Documentation:
---------------
-
-https://ml-insights.readthedocs.io.
-
-Source:
--------
-
-https://github.com/numeristical/introspective.
-
-License:
---------
+License
+=======
 
 Free software: `MIT license <LICENSE>`_
 
-Developed By:
-------------
+Developed By
+============
 
-* Brian Lucena
-* Ramesh Sampath
+- Brian Lucena
+- Ramesh Sampath
 
 References
---------
+==========
 
 Alex Goldstein, Adam Kapelner, Justin Bleich, and Emil Pitkin. 2014. Peeking Inside the Black Box: Visualizing Statistical Learning With Plots of Individual Conditional Expectation. Journal of Computational and Graphical Statistics (March 2014)
