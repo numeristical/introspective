@@ -63,6 +63,9 @@ coverage.xml
 *.mo
 *.pot
 
+# mkdocs
+docs-mkdocs/site/
+
 # Sphinx documentation
 docs/_build/
 
