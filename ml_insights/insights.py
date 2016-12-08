@@ -414,7 +414,7 @@ def prob_calibration_function(scorevec, truthvec,  reg_param_vec='default',
 
     
     if ((type(reg_param_vec)==str) and (reg_param_vec=='default')):
-        reg_param_vec = 10**np.linspace(-6,6,241)
+        reg_param_vec = 10**np.linspace(-4,10,43)
     print("Trying {} values of C between {} and {}".format(len(reg_param_vec),np.min(reg_param_vec),np.max(reg_param_vec)))
     reg = linear_model.LogisticRegressionCV(Cs=reg_param_vec, cv=5, scoring=make_scorer(log_loss,needs_proba=True, greater_is_better=False))
     reg.fit(X_mat, truthvec)
@@ -429,4 +429,24 @@ def prob_calibration_function(scorevec, truthvec,  reg_param_vec='default',
         return outvec
     return calibrate_scores
 
-
+def train_and_calibrate_cv(model, X_tr, y_tr, cv=5):
+    y_pred_xval = np.zeros(len(y_tr))
+    skf = cross_validation.StratifiedKFold(y_tr, n_folds=cv,shuffle=True)
+    i = 0;
+    for train, test in skf:
+        i = i+1
+        print("training fold {} of {}".format(i, cv))
+        X_train_xval = np.array(X_tr)[train,:]
+        X_test_xval = np.array(X_tr)[test,:]
+        y_train_xval = np.array(y_tr)[train]
+        # We could also copy the model first and then fit it
+        model_copy = clone(model)
+        model_copy.fit(X_train_xval,y_train_xval)
+        y_pred_xval[test]=model.predict_proba(X_test_xval)[:,1]    
+    print("training full model")
+    model_copy = clone(model)
+    model_copy.fit(X_tr,y_tr)
+    print("calibrating function")
+    calib_func = prob_calibration_function(y_pred_xval, y_tr)
+    return model_copy, calib_func
+  
