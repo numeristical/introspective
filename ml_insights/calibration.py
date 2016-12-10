@@ -83,11 +83,12 @@ class CalibratedClassifierCV(BaseEstimator, ClassifierMixin):
     .. [4] Predicting Good Probabilities with Supervised Learning,
            A. Niculescu-Mizil & R. Caruana, ICML 2005
     """
-    def __init__(self, base_estimator=None, method='sigmoid', cv=3):
+    def __init__(self, base_estimator=None, method='sigmoid', cv=5, **calib_kwargs):
         self.base_estimator = base_estimator
         self.calibrated_classifier = None
         self.method = method
         self.cv = cv
+        self.calib_kwargs = calib_kwargs
 
     def fit(self, X, y):
         """Fit the calibrated model
@@ -111,7 +112,7 @@ class CalibratedClassifierCV(BaseEstimator, ClassifierMixin):
         else:
             skf = StratifiedKFold(n_splits=self.cv, shuffle=True).split(X, y)
         for idx, (train_idx, test_idx) in enumerate(skf):
-            print("training fold {} of {}".format(idx, self.cv))
+            print("training fold {} of {}".format(idx+1, self.cv))
             X_train = np.array(X)[train_idx,:]
             X_test = np.array(X)[test_idx,:]
             y_train = np.array(y)[train_idx]
@@ -121,8 +122,9 @@ class CalibratedClassifierCV(BaseEstimator, ClassifierMixin):
             y_pred[test_idx] = this_estimator.predict_proba(X_test)[:,1]
 
         # calibrating function
-        self.calib_func = prob_calibration_function(y_pred, y)
+        self.calib_func = prob_calibration_function(y, y_pred, **self.calib_kwargs)
         # training full model
+        print("Training Full Model")
         self.calibrated_classifier = clone(self.base_estimator)
         self.calibrated_classifier.fit(X, y)
 
@@ -145,7 +147,10 @@ class CalibratedClassifierCV(BaseEstimator, ClassifierMixin):
             The predicted probas.
         """
         # check_is_fitted(self, ["classes_", "calibrated_classifier"])
-        return self.calibrated_classifier.predict_proba(X)
+        col_1 = self.calib_func(self.calibrated_classifier.predict_proba(X)[:,1])
+        col_0 = 1-col_1
+        return np.vstack((col_0,col_1)).T
+
 
     def predict(self, X):
         """Predict the target of new samples. Can be different from the

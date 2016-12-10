@@ -34,7 +34,7 @@ def _natural_cubic_spline_basis_expansion(xpts,knots):
     return outmat
 
 
-def prob_calibration_function(scorevec, truthvec,  reg_param_vec='default',
+def prob_calibration_function(truthvec, scorevec, reg_param_vec='default',
                                 knots = 'all', extrapolate=True):
     """This function takes an uncalibrated set of scores and the true 0/1 values and returns a calibration function.
 
@@ -83,7 +83,7 @@ def train_and_calibrate_cv(model, X_tr, y_tr, cv=5):
     model_copy = clone(model)
     model_copy.fit(X_tr,y_tr)
     print("calibrating function")
-    calib_func = prob_calibration_function(y_pred_xval, y_tr)
+    calib_func = prob_calibration_function(y_tr, y_pred_xval)
     return model_copy, calib_func
 
 
