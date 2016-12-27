@@ -3,6 +3,7 @@ from __future__ import division
 
 import numpy as np
 import sklearn
+import random
 
 try:
     from sklearn.model_selection import StratifiedKFold
@@ -35,7 +36,7 @@ def _natural_cubic_spline_basis_expansion(xpts,knots):
 
 
 def prob_calibration_function(truthvec, scorevec, reg_param_vec='default',
-                                knots = 'all', extrapolate=True):
+                                knots = 'sample', method='logistic', force_prob = True, eps=1e-15, max_knots=200, random_state=942):
     """This function takes an uncalibrated set of scores and the true 0/1 values and returns a calibration function.
 
     This calibration function can then be applied to other scores from the same model and will return an accurate probability
@@ -46,22 +47,48 @@ def prob_calibration_function(truthvec, scorevec, reg_param_vec='default',
     from sklearn.metrics import log_loss, make_scorer
 
     knot_vec = np.unique(scorevec)
+    if (knots == 'sample'):
+        num_unique = len(knot_vec)
+        if (num_unique>max_knots):
+            smallest_knot, biggest_knot = knot_vec[0],knot_vec[-1]
+            inter_knot_vec = knot_vec[1:-1]
+            random.seed(random_state)
+            random.shuffle(inter_knot_vec)
+            reduced_knot_vec = inter_knot_vec[:(max_knots-2)]
+            reduced_knot_vec = np.insert(reduced_knot_vec,[0,0],[smallest_knot,biggest_knot])
+            knot_vec = np.sort(reduced_knot_vec)
+        print("Originally there were {} knots.  Reducing to {} while preserving first and last knot.".format(num_unique, len(knot_vec)))
     X_mat = _natural_cubic_spline_basis_expansion(scorevec, knot_vec)
 
 
-    if ((type(reg_param_vec)==str) and (reg_param_vec=='default')):
-        reg_param_vec = 10**np.linspace(-4,10,43)
-    print("Trying {} values of C between {} and {}".format(len(reg_param_vec),np.min(reg_param_vec),np.max(reg_param_vec)))
-    reg = linear_model.LogisticRegressionCV(Cs=reg_param_vec, cv=5, scoring=make_scorer(log_loss,needs_proba=True, greater_is_better=False))
-    reg.fit(X_mat, truthvec)
-    print("Best value found C = {}".format(reg.C_))
+    if (method=='logistic'):
+        if ((type(reg_param_vec)==str) and (reg_param_vec=='default')):
+            reg_param_vec = 10**np.linspace(-4,10,43)
+        print("Trying {} values of C between {} and {}".format(len(reg_param_vec),np.min(reg_param_vec),np.max(reg_param_vec)))
+        reg = linear_model.LogisticRegressionCV(Cs=reg_param_vec, cv=5, scoring=make_scorer(log_loss,needs_proba=True, greater_is_better=False))
+        reg.fit(X_mat, truthvec)
+        print("Best value found C = {}".format(reg.C_))
+    
+    if (method=='ridge'):
+        if ((type(reg_param_vec)==str) and (reg_param_vec=='default')):
+            reg_param_vec = 10**np.linspace(-7,7,43)
+        print("Trying {} values of alpha between {} and {}".format(len(reg_param_vec),np.min(reg_param_vec),np.max(reg_param_vec)))
+        reg = linear_model.RidgeCV(alphas=reg_param_vec, cv=5, scoring=make_scorer(mean_squared_error_trunc,needs_proba=False, greater_is_better=False))
+        reg.fit(X_mat, truthvec)
+        print("Best value found alpha = {}".format(reg.alpha_))
 
     def calibrate_scores(new_scores):
-        if (not extrapolate):
-            new_scores = np.maximum(new_scores,knot_vec[0]*np.ones(len(new_scores)))
-            new_scores = np.minimum(new_scores,knot_vec[-1]*np.ones(len(new_scores)))
+        #if (not extrapolate):
+        #    new_scores = np.maximum(new_scores,knot_vec[0]*np.ones(len(new_scores)))
+        #    new_scores = np.minimum(new_scores,knot_vec[-1]*np.ones(len(new_scores)))
         basis_exp = _natural_cubic_spline_basis_expansion(new_scores,knot_vec)
-        outvec = reg.predict_proba(basis_exp)[:,1]
+        if (method=='logistic'):
+            outvec = reg.predict_proba(basis_exp)[:,1]
+        if (method=='ridge'):
+            outvec = reg.predict(basis_exp)
+            if force_prob:
+                outvec = np.where(outvec<eps,eps,outvec)
+                outvec = np.where(outvec>1-eps,1-eps,outvec)
         return outvec
     return calibrate_scores
 
@@ -86,4 +113,7 @@ def train_and_calibrate_cv(model, X_tr, y_tr, cv=5):
     calib_func = prob_calibration_function(y_tr, y_pred_xval)
     return model_copy, calib_func
 
-
+def mean_squared_error_trunc(y_true, y_pred,eps=1e-15): 
+    y_pred = np.where(y_pred<eps,eps,y_pred)
+    y_pred = np.where(y_pred>1-eps,1-eps,y_pred)
+    return np.average((y_true-y_pred)**2)
