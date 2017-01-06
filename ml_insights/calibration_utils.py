@@ -42,6 +42,42 @@ def prob_calibration_function(truthvec, scorevec, reg_param_vec='default',
     This calibration function can then be applied to other scores from the same model and will return an accurate probability
     based on the data it has seen.  For best results, the calibration should be done on a separate validation set (not used
     to train the model).
+
+    Parameters
+    ----------
+    truthvec : A numpy array containing the true values that is the target of the calibration.  For binary
+     classification these are typically your 0/1 values.
+
+    scorevec : A numpy array containing the scores that are not appropriate to be used as probabilities.  These do not
+     necessarily need to be between 0 and 1, though that is the typical usage.  
+
+    reg_param_vec:  The vector of C-values (if method = 'logistic') or alpha values (if method = 'ridge') that the calibration should
+      search across.  If reg_param_vec = 'default' (which is the default) then it picks a reasonable set of values to search across.
+
+    knots: Default is 'sample', which means it will randomly pick a subset of size max_knots from the unique values in scorevec (while always
+        keeping the largest and smallest value).  If knots='all' it will use all unique values of scorevec as knots.  This may yield a
+        better calibration, but will be slower.
+
+    method : 'logistic' or 'ridge'
+        The default is 'logistic', which is best if you plan to use log-loss as your metric.  You can also use "ridge" which may
+        be better if Brier Score is your metic of interest.  However, "ridge" may be less stable and robust, especially when used
+        for probabilities.
+
+    force_prob: This is ignored for method = 'logistic'.  For method = 'ridge', if set to True (the default), it will ensure that the
+        values coming out of the calibration are between eps and 1-eps.
+
+    eps: default is 1e-15.  Applies only if force_prob = True and method = 'ridge'.  See force_prob above.
+
+    max_knots:  The number of knots to use when knots='sample'.  See knots above.
+
+    random_state: default is 942 (a particular value to ensure consistency when running multiple times).  User can supply a different value
+        if they want a different random seed.
+
+    Returns
+    ---------------------
+
+    A function object which takes a numpy array (or a single number) and returns the output of the calculated calibration function.
+
     """
     from sklearn import linear_model
     from sklearn.metrics import log_loss, make_scorer

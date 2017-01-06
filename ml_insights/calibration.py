@@ -26,7 +26,7 @@ class SplineCalibratedClassifierCV(BaseEstimator, ClassifierMixin):
     ----------
     base_estimator : instance BaseEstimator
         The classifier whose output decision function needs to be calibrated
-        to offer more accurate predict_proba outputs. If cv=prefit, the
+        to offer more accurate predict_proba outputs. If cv='prefit', the
         classifier must have been fit already on data.
 
     method : 'logistic' or 'ridge'
@@ -57,13 +57,10 @@ class SplineCalibratedClassifierCV(BaseEstimator, ClassifierMixin):
 
     Attributes
     ----------
-    classes_ : array, shape (n_classes)
-        The class labels.
+    uncalibrated_classifier: this gives the uncalibrated version of the classifier, fit on the entire data set
 
-    calibrated_classifiers_: list (len() equal to cv or 1 if cv == "prefit")
-        The list of calibrated classifiers, one for each crossvalidation fold,
-        which has been fitted on all but the validation fold and calibrated
-        on the validation fold.
+    calib_func: this is the calibration function that has been learned from the cross-validation.  Applying this function
+     to the results of the uncalibrated classifier (via model.predict_proba(X_test)[:,1]) gives the fully calibrated classifier
 
     References
     ----------
