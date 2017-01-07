@@ -6,9 +6,6 @@ from setuptools import setup
 with open('README.rst') as readme_file:
     readme = readme_file.read()
 
-with open('HISTORY.rst') as history_file:
-    history = history_file.read()
-
 requirements = [
     # TODO: put package requirements here
     "pandas",
@@ -17,9 +14,9 @@ requirements = [
 
 setup(
     name='ml_insights',
-    version='0.0.7',
+    version='0.0.9',
     description="Package to understand ML Models",
-    long_description=readme + '\n\n' + history,
+    long_description=readme,
     author="Ramesh Sampath / Brian Lucena",
     author_email='.',
     url='http://ml-insights.readthedocs.io/en/latest/',
