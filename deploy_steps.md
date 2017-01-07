@@ -19,3 +19,7 @@ To Deploy to PyPi Server:
 
 
 **Note: When uploading to TestPyPi or PyPi, we cannot update the versions.  Version numbers need to be updated in setup.py and ml_insights/__init__.py
+
+
+To Upgrade Documentation:
+
