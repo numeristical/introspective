@@ -215,9 +215,9 @@ class SplineCalibratedClassifierCV(BaseEstimator, ClassifierMixin):
         if self.fit_on_multiclass:
             return self.calib_func(self.uncalibrated_classifier.predict_proba(X))
         
-            col_1 = self.calib_func(self.uncalibrated_classifier.predict_proba(X)[:,1])
-            col_0 = 1-col_1
-            return np.vstack((col_0,col_1)).T
+        col_1 = self.calib_func(self.uncalibrated_classifier.predict_proba(X)[:,1])
+        col_0 = 1-col_1
+        return np.vstack((col_0,col_1)).T
         
             
 
