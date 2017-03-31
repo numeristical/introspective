@@ -8,7 +8,7 @@ try:
 except:
     from sklearn.cross_validation import StratifiedKFold
 
-from .calibration_utils import prob_calibration_function
+from .calibration_utils import prob_calibration_function, compact_logit
 
 
 class SplineCalibratedClassifierCV(BaseEstimator, ClassifierMixin):
@@ -65,14 +65,22 @@ class SplineCalibratedClassifierCV(BaseEstimator, ClassifierMixin):
     References
     ----------
    """
-    def __init__(self, base_estimator=None, method='logistic', cv=5, **calib_kwargs):
+    def __init__(self, base_estimator=None, method='logistic', cv=5, transform_type='none', cl_eps = .000001, **calib_kwargs):
         self.base_estimator = base_estimator
         self.uncalibrated_classifier = None
         self.calib_func = None
         self.method = method
         self.cv = cv
+        self.cl_eps = cl_eps
         self.calib_kwargs = calib_kwargs
         self.fit_on_multiclass = False
+        self.transform_type = transform_type
+        self.pre_transform = lambda x: x
+        if type(self.transform_type) == str:
+            if self.transform_type == 'cl':
+                self.pre_transform = lambda x: compact_logit(x, eps = self.cl_eps)
+        if callable(self.transform_type):
+            self.pre_transform = self.transform_type
 
     def fit(self, X, y, verbose=False):
         """Fit the calibrated model
@@ -91,6 +99,7 @@ class SplineCalibratedClassifierCV(BaseEstimator, ClassifierMixin):
             Returns an instance of self.
         """
 
+        
         if len(np.unique(y)) > 2:
             self.fit_on_multiclass = True
             return self._fit_multiclass(X, y, verbose=verbose)
@@ -126,9 +135,9 @@ class SplineCalibratedClassifierCV(BaseEstimator, ClassifierMixin):
         if verbose:
             print("Determining Calibration Function")
         if self.method=='logistic':
-            self.calib_func = prob_calibration_function(y, y_pred, verbose=verbose, **self.calib_kwargs)
+            self.calib_func = prob_calibration_function(y, self.pre_transform(y_pred), verbose=verbose, **self.calib_kwargs)
         if self.method=='ridge':
-            self.calib_func = prob_calibration_function(y, y_pred, method='ridge', verbose=verbose, **self.calib_kwargs)
+            self.calib_func = prob_calibration_function(y, self.pre_transform(y_pred), method='ridge', verbose=verbose, **self.calib_kwargs)
         # training full model
 
         return self
@@ -152,14 +161,13 @@ class SplineCalibratedClassifierCV(BaseEstimator, ClassifierMixin):
         class_list = np.unique(y)
         num_classes = len(class_list)
         y_mod = np.zeros(len(y))
-
         for i in range(num_classes):
-            y_mod[np.where(y==class_list[i])]=i
+           y_mod[y==class_list[i]]=i
 
         y_mod = y_mod.astype(int)
         if ((type(self.cv)==str) and (self.cv=='prefit')):
             self.uncalibrated_classifier = self.base_estimator
-            y_pred = self.uncalibrated_classifier.predict_proba(X)[:,1]
+            y_pred = self.uncalibrated_classifier.predict_proba(X)
 
         else:
             y_pred = np.zeros((len(y_mod),num_classes))
@@ -187,9 +195,9 @@ class SplineCalibratedClassifierCV(BaseEstimator, ClassifierMixin):
         if verbose:
             print("Determining Calibration Function")
         if self.method=='logistic':
-            self.calib_func = prob_calibration_function_multiclass(y_mod, y_pred, verbose=verbose, **self.calib_kwargs)
+            self.calib_func, self.cf_list = prob_calibration_function_multiclass(y_mod, self.pre_transform(y_pred), verbose=verbose, **self.calib_kwargs)
         if self.method=='ridge':
-            self.calib_func = prob_calibration_function_multiclass(y_mod, y_pred, verbose=verbose, method='ridge', **self.calib_kwargs)
+            self.calib_func, self.cf_list = prob_calibration_function_multiclass(y_mod, self.pre_transform(y_pred), verbose=verbose, method='ridge', **self.calib_kwargs)
         # training full model
 
         return self
@@ -213,9 +221,9 @@ class SplineCalibratedClassifierCV(BaseEstimator, ClassifierMixin):
         """
         # check_is_fitted(self, ["classes_", "calibrated_classifier"])
         if self.fit_on_multiclass:
-            return self.calib_func(self.uncalibrated_classifier.predict_proba(X))
+            return self.calib_func(self.pre_transform(self.uncalibrated_classifier.predict_proba(X)))
         
-        col_1 = self.calib_func(self.uncalibrated_classifier.predict_proba(X)[:,1])
+        col_1 = self.calib_func(self.pre_transform(self.uncalibrated_classifier.predict_proba(X)[:,1]))
         col_0 = 1-col_1
         return np.vstack((col_0,col_1)).T
         

@@ -39,13 +39,18 @@ class ModelXRay(object):
         values ranging from the min observed value to the max observed value.
     """
 
-    def __init__(self, model, data, columns=None, resolution=100, normalize_loc=None):
+    def __init__(self, model, data, columns=None, resolution=100, normalize_loc=None, pred_col_name = None, pred_col_index=1):
 
         self.model = model
         self.data = data
-
+        self.pred_col_index = pred_col_index
         if type(data) == pd.DataFrame:
+            if (pred_col_name != None) and (is_classifier(self.model)):
+                self.pred_col_index = np.where(self.model.classes_ == pred_col_name)[0][0]
+            self.pred_col_name = data.columns[self.pred_col_index]
             self.data_values = data.values
+
+
         else:
             self.data_values = data
 
@@ -66,8 +71,9 @@ class ModelXRay(object):
             warnings.simplefilter("ignore")
 
             if is_classifier(self.model):
-                y_pred = self.model.predict_proba(rows)[:,1]
+                y_pred = self.model.predict_proba(rows)[:,self.pred_col_index]
             else:
+                print('off')
                 y_pred = self.model.predict(rows)
         return y_pred
 
@@ -283,7 +289,7 @@ class ModelXRay(object):
         return row_indexes
 
 
-    def explain_prediction_difference(self, index_1, index_2, tol=.03, verbose=True):
+    def explain_prediction_difference(self, index_1, index_2, tol=.03, verbose=True, decimals=4):
         '''Given the indices of two points in the "xray"-ed data set, this function gives an explanation
         of the factors contributing to the difference in the predictions.
 
@@ -295,7 +301,7 @@ class ModelXRay(object):
         '''
         data_row_1 = self._get_data_rows(index_1)
         data_row_2 = self._get_data_rows(index_2)
-        return explain_prediction_difference(self.model, data_row_1, data_row_2, tol, verbose)
+        return explain_prediction_difference(self.model, data_row_1, data_row_2, tol, verbose, decimals, self.pred_col_index)
 
 
 def importance_distribution_of_variable(model_result_array):
@@ -304,7 +310,7 @@ def importance_distribution_of_variable(model_result_array):
     return max_result_vec - min_result_vec
 
 
-def explain_prediction_difference(model, data_row_1, data_row_2, tol=.03, verbose=True, decimals = 4):
+def explain_prediction_difference(model, data_row_1, data_row_2, tol=.03, verbose=True, decimals = 4, pred_col_index=1):
     '''Given a model and two single row data frames, this function gives an explanation
         of the factors contributing to the difference in the predictions.
 
@@ -322,12 +328,13 @@ def explain_prediction_difference(model, data_row_1, data_row_2, tol=.03, verbos
     column_list = list(range(num_columns))
     curr_pt = np.copy(dr_1)
     if is_classifier(model):
-        val1 = model.predict_proba(dr_1)[0,1]
-        val2 = model.predict_proba(dr_2)[0,1]
+        val1 = model.predict_proba(dr_1)[0,pred_col_index]
+        val2 = model.predict_proba(dr_2)[0,pred_col_index]
     else:
         val1 = model.predict(dr_1)[0]
         val2 = model.predict(dr_2)[0]
     if verbose:
+        print(val1, val2)
         print('Your initial point has a target value of {}'.format(np.round(val1,decimals=decimals)))
         print('Your final point has a target value of {}'.format(np.round(val2,decimals=decimals)))
     pt_list = [dr_1]
@@ -348,7 +355,7 @@ def explain_prediction_difference(model, data_row_1, data_row_2, tol=.03, verbos
             subst_val = dr_2[0,i]
             test_pt[0,i] = subst_val
             if is_classifier(model):
-                test_val = model.predict_proba(test_pt)[0,1]
+                test_val = model.predict_proba(test_pt)[0,pred_col_index]
             else:
                 test_val = model.predict(test_pt)[0]
             move_size = (test_val - curr_val)

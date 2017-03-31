@@ -4,11 +4,14 @@ from __future__ import division
 import numpy as np
 import sklearn
 import random
+import matplotlib.pyplot as plt
 
 try:
     from sklearn.model_selection import StratifiedKFold
 except:
     from sklearn.cross_validation import StratifiedKFold
+
+from .utils import _gca
 
 
 def _natural_cubic_spline_basis_expansion(xpts,knots):
@@ -36,7 +39,7 @@ def _natural_cubic_spline_basis_expansion(xpts,knots):
 
 
 def prob_calibration_function(truthvec, scorevec, reg_param_vec='default', knots = 'sample', method='logistic', 
-                force_prob = True, eps=1e-15, max_knots=200, random_state=942, verbose=False):
+                force_prob = True, eps=1e-15, max_knots=200, random_state=942, verbose=False, cv_folds=10):
     """This function takes an uncalibrated set of scores and the true 0/1 values and returns a calibration function.
 
     This calibration function can then be applied to other scores from the same model and will return an accurate probability
@@ -91,37 +94,41 @@ def prob_calibration_function(truthvec, scorevec, reg_param_vec='default', knots
             random.seed(random_state)
             random.shuffle(inter_knot_vec)
             reduced_knot_vec = inter_knot_vec[:(max_knots-2)]
-            reduced_knot_vec = np.insert(reduced_knot_vec,[0,0],[smallest_knot,biggest_knot])
-            knot_vec = np.sort(reduced_knot_vec)
+            reduced_knot_vec = np.concatenate((reduced_knot_vec,[smallest_knot,biggest_knot]))
+            reduced_knot_vec = np.concatenate((reduced_knot_vec,np.linspace(0,1,21)))
+            knot_vec = np.unique(reduced_knot_vec)
         if verbose:
+            #print(knot_vec)
             print("Originally there were {} knots.  Reducing to {} while preserving first and last knot.".format(num_unique, len(knot_vec)))
     X_mat = _natural_cubic_spline_basis_expansion(scorevec, knot_vec)
 
 
     if (method=='logistic'):
         if ((type(reg_param_vec)==str) and (reg_param_vec=='default')):
-            reg_param_vec = 10**np.linspace(-4,10,43)
+            reg_param_vec = 10**np.linspace(-7,5,61)
         if verbose:
             print("Trying {} values of C between {} and {}".format(len(reg_param_vec),np.min(reg_param_vec),np.max(reg_param_vec)))
-        reg = linear_model.LogisticRegressionCV(Cs=reg_param_vec, cv=5, scoring=make_scorer(log_loss,needs_proba=True, greater_is_better=False))
+        reg = linear_model.LogisticRegressionCV(Cs=reg_param_vec, cv = StratifiedKFold(cv_folds, shuffle=True), scoring=make_scorer(log_loss,needs_proba=True, greater_is_better=False))
         reg.fit(X_mat, truthvec)
         if verbose:
             print("Best value found C = {}".format(reg.C_))
+            #print(reg.coef_)
+            #print(reg.scores_)
     
     if (method=='ridge'):
         if ((type(reg_param_vec)==str) and (reg_param_vec=='default')):
-            reg_param_vec = 10**np.linspace(-7,7,43)
+            reg_param_vec = 10**np.linspace(-7,7,71)
         if verbose:
             print("Trying {} values of alpha between {} and {}".format(len(reg_param_vec),np.min(reg_param_vec),np.max(reg_param_vec)))
-        reg = linear_model.RidgeCV(alphas=reg_param_vec, cv=5, scoring=make_scorer(mean_squared_error_trunc,needs_proba=False, greater_is_better=False))
+        reg = linear_model.RidgeCV(alphas=reg_param_vec, cv=StratifiedKFold(cv_folds, shuffle=True), scoring=make_scorer(mean_squared_error_trunc,needs_proba=False, greater_is_better=False))
         reg.fit(X_mat, truthvec)
         if verbose:
             print("Best value found alpha = {}".format(reg.alpha_))
 
     def calibrate_scores(new_scores):
         #if (not extrapolate):
-        #    new_scores = np.maximum(new_scores,knot_vec[0]*np.ones(len(new_scores)))
-        #    new_scores = np.minimum(new_scores,knot_vec[-1]*np.ones(len(new_scores)))
+        new_scores = np.maximum(new_scores,knot_vec[0]*np.ones(len(new_scores)))
+        new_scores = np.minimum(new_scores,knot_vec[-1]*np.ones(len(new_scores)))
         basis_exp = _natural_cubic_spline_basis_expansion(new_scores,knot_vec)
         if (method=='logistic'):
             outvec = reg.predict_proba(basis_exp)[:,1]
@@ -222,5 +229,39 @@ def prob_calibration_function_multiclass(truthvec, scoremat, verbose=False, **kw
         #    new_scores = np.maximum(new_scores,knot_vec[0]*np.ones(len(new_scores)))
         #    new_scores = np.minimum(new_scores,knot_vec[-1]*np.ones(len(new_scores)))
         return probmat
-    return calibrate_scores_multiclass
+    return calibrate_scores_multiclass, function_list
+
+def plot_prob_calibration(calib_fn, show_baseline=True, ax=None, **kwargs):
+    if ax is None:
+        ax = _gca()
+        fig = ax.get_figure()
+    ax.plot(np.linspace(0,1,100),calib_fn(np.linspace(0,1,100)),**kwargs)
+    if show_baseline:
+        ax.plot(np.linspace(0,1,100),(np.linspace(0,1,100)),'k--')
+    ax.axis([-0.1,1.1,-0.1,1.1])
+    
+def plot_empirical_probs(y,x,bins=np.linspace(0,1,21),size_points=True, show_baseline=True,ax=None, marker='+',c='red', **kwargs):
+    if ax is None:
+        ax = _gca()
+        fig = ax.get_figure()
+    digitized_x = np.digitize(x, bins)
+    mean_count_array = np.array([[np.mean(y[digitized_x == i]),len(y[digitized_x == i]),np.mean(x[digitized_x==i])] for i in np.unique(digitized_x)])
+    if show_baseline:
+        ax.plot(np.linspace(0,1,100),(np.linspace(0,1,100)),'k--')
+    for i in range(len(mean_count_array[:,0])):
+        if size_points:
+            plt.scatter(mean_count_array[i,2],mean_count_array[i,0],s=mean_count_array[i,1],marker=marker,c=c, **kwargs)
+        else: 
+            plt.scatter(mean_count_array[i,2],mean_count_array[i,0], **kwargs)
+    plt.axis([-0.1,1.1,-0.1,1.1])
+    return(mean_count_array[:,2],mean_count_array[:,0],mean_count_array[:,1])
+
+
+def compact_logit(x, eps=.00001):
+    import warnings
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", message="divide by zero encountered in true_divide")
+        warnings.filterwarnings("ignore", message="divide by zero encountered in log")
+        warnings.filterwarnings("ignore", message="invalid value encountered in multiply")
+        return np.nansum(((x<=eps)*x, (x>=(1-eps))*x, ((x>eps)&(x<(1-eps)))*((1-2*eps)*(np.log(x/(1-x)))/(2*np.log((1-eps)/eps))+.5)),axis=0)
 
