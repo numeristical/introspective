@@ -14,7 +14,7 @@ requirements = [
 
 setup(
     name='ml_insights',
-    version='0.0.14',
+    version='0.0.15',
     description="Package to understand ML Models",
     long_description=readme,
     author="Ramesh Sampath / Brian Lucena",
