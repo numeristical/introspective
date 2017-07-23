@@ -73,7 +73,7 @@ class ModelXRay(object):
             if is_classifier(self.model):
                 y_pred = self.model.predict_proba(rows)[:,self.pred_col_index]
             else:
-                print('off')
+                #print('off')
                 y_pred = self.model.predict(rows)
         return y_pred
 
