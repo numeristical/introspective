@@ -176,8 +176,8 @@ class ModelXRay(object):
         num_pts = len(self.data_values)
         for column_num, column_name in zip(column_nums, columns):
             if (len(np.unique(self.data_values[:,column_num])) > resolution):
-                col_values = np.linspace(np.min(self.data_values[:,column_num]),
-                    np.max(self.data_values[:,column_num]),resolution)
+                col_values = np.linspace(np.nanmin(self.data_values[:,column_num]),
+                    np.nanmax(self.data_values[:,column_num]),resolution)
             else:
                 col_values = np.sort(np.unique(self.data_values[:,column_num]))
             ## Define the empty data structure to output
