@@ -14,11 +14,11 @@ requirements = [
 
 setup(
     name='ml_insights',
-    version='0.0.16',
+    version='0.0.17',
     description="Package to understand ML Models",
     long_description=readme,
     author="Ramesh Sampath / Brian Lucena",
-    author_email='.',
+    author_email='brianlucena@gmail.com',
     url='http://ml-insights.readthedocs.io/en/latest/',
     packages=[
         'ml_insights',

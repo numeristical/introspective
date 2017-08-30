@@ -240,7 +240,7 @@ def plot_prob_calibration(calib_fn, show_baseline=True, ax=None, **kwargs):
         ax.plot(np.linspace(0,1,100),(np.linspace(0,1,100)),'k--')
     ax.axis([-0.1,1.1,-0.1,1.1])
     
-def plot_empirical_probs(y,x,bins=np.linspace(0,1,21),size_points=True, show_baseline=True,ax=None, marker='+',c='red', **kwargs):
+def plot_reliability_diagram(y,x,bins=np.linspace(0,1,21),size_points=True, show_baseline=True,ax=None, marker='+',c='red', **kwargs):
     if ax is None:
         ax = _gca()
         fig = ax.get_figure()

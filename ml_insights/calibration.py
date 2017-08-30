@@ -111,10 +111,17 @@ class SplineCalibratedClassifierCV(BaseEstimator, ClassifierMixin):
 
         else:
             y_pred = np.zeros(len(y))
+            
             if sklearn.__version__ < '0.18':
-                skf = StratifiedKFold(y, n_folds=self.cv,shuffle=True)
+                if type(self.cv)==int:
+                    skf = StratifiedKFold(y, n_folds=self.cv,shuffle=True)
+                else:
+                    skf = self.cv
             else:
-                skf = StratifiedKFold(n_splits=self.cv, shuffle=True).split(X, y)
+                if type(self.cv)==int:
+                    skf = StratifiedKFold(n_splits=self.cv, shuffle=True).split(X, y)
+                else:
+                    skf = self.cv.split(X,y)
             for idx, (train_idx, test_idx) in enumerate(skf):
                 if verbose:
                     print("training fold {} of {}".format(idx+1, self.cv))
