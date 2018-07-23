@@ -248,7 +248,8 @@ class ModelXRay(object):
         ax.set_yticklabels([columns[idx] for idx in sortind][-num_features:]);
 
 
-    def feature_dependence_plots(self, show_base_points=True, pts_selected='sample', num_pts=5, figsize=None):
+    def feature_dependence_plots(self, show_base_points=True, pts_selected='sample',
+        columns = None, num_pts=5, figsize=None):
         '''This function visualizes the effect of a single variable in models with complicated dependencies.
         Given a dataset, it will select points in that dataset, and then change the select column across
         different values to view the effect of the model prediction given that variable. These have been called
@@ -259,7 +260,8 @@ class ModelXRay(object):
 
         import matplotlib.pyplot as plt
 
-        columns = sorted(list(self.results.keys()))
+        if columns == None:
+            columns = sorted(list(self.results.keys()))
         num_rows = len(self.results[columns[0]][1])  # Get number of sample rows
         if (type(pts_selected)==str and pts_selected=='sample'):
             row_indexes = np.random.choice(np.arange(num_rows), num_pts)
@@ -284,7 +286,7 @@ class ModelXRay(object):
             # Plot Base Points
             if y_base_points is not None:
                 ax.scatter(base_rows[col_name], y_base_points)
-            ax.set_title(col_name)
+            ax.set_title(col_name[:30])
         plt.tight_layout()
         return row_indexes
 
