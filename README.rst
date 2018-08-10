@@ -10,11 +10,7 @@ via the "Model X-Ray".  The second is for probability calibration.
 
 For understanding black-box models, the main entry point is the `ModelXRay` class.  Instantiate it with the model and data.  The data can be what the model was trained with, but intended to be used for out of bag or test data to see how the model performs when one feature is changed, holding everything else constant.
 
-Reference-style:
-![alt text][example]
-
-[example]: https://github.com/numeristical/introspective/mli_screenshot.png "Example"
-
+![](mli_screenshot.png)
 
 For probability calibration, the main class is the `SplineCalibratedClassifierCV`.  Using this class you can train your
 base model, and the corrective calibration function with just a couple of lines of code.  See the examples by following
