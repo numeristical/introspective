@@ -1,12 +1,20 @@
 ML Insights
 ===========
 
-Package to understand Supervised ML Models.  This package has been tested with Scikit-Learn and XGBoost library.  It should work with any machine learning library that has a `predict` and `predict_proba` methods for regression and classification estimators.
+Welcome to ML-Insights!
 
-There are currently two main sets of capabilities of this package.  The first is around understanding "black-box" models 
+This is a package to understand supervised ML Models.  This package has been tested with Scikit-Learn and XGBoost library.  It should work with any machine learning library that has a `predict` and `predict_proba` methods for regression and classification estimators.
+
+There are currently two main sets of capabilities of this package.  The first is around understanding "black-box" models
 via the "Model X-Ray".  The second is for probability calibration.
 
 For understanding black-box models, the main entry point is the `ModelXRay` class.  Instantiate it with the model and data.  The data can be what the model was trained with, but intended to be used for out of bag or test data to see how the model performs when one feature is changed, holding everything else constant.
+
+Reference-style:
+![alt text][example]
+
+[example]: https://github.com/numeristical/introspective/mli_screenshot.png "Example"
+
 
 For probability calibration, the main class is the `SplineCalibratedClassifierCV`.  Using this class you can train your
 base model, and the corrective calibration function with just a couple of lines of code.  See the examples by following
