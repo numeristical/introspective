@@ -143,7 +143,7 @@ class ModelXRay(object):
             if type(self.data) == pd.DataFrame:
                 columns = self.data.columns
             else:
-                columns = range(len(data[0]))  # Assuming a 2-D Dataset
+                columns = range(len(self.data[0]))  # Assuming a 2-D Dataset
         else:
             # Verify that columns is an iterable
             try:
