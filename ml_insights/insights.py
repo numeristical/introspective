@@ -142,7 +142,7 @@ class ModelXRay(object):
         if columns is None:
             if type(self.data) == pd.DataFrame:
                 columns = self.data.columns
-            else:
+            if type(self.data)==np.ndarray:
                 columns = range(len(self.data[0]))  # Assuming a 2-D Dataset
         else:
             # Verify that columns is an iterable
@@ -383,3 +383,82 @@ def explain_prediction_difference(model, data_row_1, data_row_2, tol=.03, verbos
         move_list.append(biggest_move)
         feat_val_change_list.append((old_feat_val, new_feat_val))
     return feat_list, feat_val_change_list, move_list, val_list
+
+
+def explain_prediction_difference_xgboost(model, data_row_1, data_row_2, tol=.03, verbose=True, decimals = 4, pred_col_index=1):
+    '''Given a model and two single row data frames, this function gives an explanation
+        of the factors contributing to the difference in the predictions.
+
+        Starting with the first point given, the considers changing each feature from its current value to that
+        possessed by the second point.  The function evaluates the target in both scenarios and determines the
+        feature value change that creates the biggest (absolute) change in the target.  This change is selected
+        and the current point becomes the new point with the new feature value.  This is repeated until the new
+        target value is within a factor of 1+tol of the second point.
+        '''
+    column_names = data_row_1.columns
+    num_columns = len(column_names)
+
+    #dr_1 = data_row_1.values.reshape(1,-1)
+    #dr_2 = data_row_2.values.reshape(1,-1)
+    dr_1 = data_row_1
+    dr_2 = data_row_2
+    column_list = list(range(num_columns))
+    curr_pt = (dr_1).copy()
+    if is_classifier(model):
+        val1 = model.predict_proba(dr_1)[0,pred_col_index]
+        val2 = model.predict_proba(dr_2)[0,pred_col_index]
+    else:
+        val1 = model.predict(dr_1)[0]
+        val2 = model.predict(dr_2)[0]
+    if verbose:
+        print(val1, val2)
+        print('Your initial point has a target value of {}'.format(np.round(val1,decimals=decimals)))
+        print('Your final point has a target value of {}'.format(np.round(val2,decimals=decimals)))
+    pt_list = [dr_1]
+    val_list = [val1]
+    curr_val = val1
+    final_val = val2
+    feat_list =[]
+    move_list = []
+    feat_val_change_list = []
+    #for num_steps in range(4):
+    while (((curr_val/final_val) >(1+tol)) or ((curr_val/final_val) <(1-tol))):
+        biggest_move = 0
+        best_column = -1
+        best_val = curr_val
+        for i in column_list:
+            test_pt = (curr_pt).copy()
+            prev_feat_val = test_pt.iloc[0,i]
+            subst_val = dr_2.iloc[0,i]
+            test_pt.iloc[0,i] = subst_val
+            if is_classifier(model):
+                test_val = model.predict_proba(test_pt)[0,pred_col_index]
+            else:
+                test_val = model.predict(test_pt)[0]
+            move_size = (test_val - curr_val)
+            if(np.abs(move_size)>=np.abs(biggest_move)):
+                biggest_move = move_size
+                best_column = i
+                best_val = test_val
+                old_feat_val = prev_feat_val
+                new_feat_val = subst_val
+        subst_val = dr_2.iloc[0,best_column]
+        curr_pt.iloc[0,best_column] = subst_val
+        val_list.append(best_val)
+        curr_val = best_val
+        if verbose:
+            print('Changing {} from {} to {}'.format(column_names[best_column],np.round(old_feat_val,decimals=decimals),np.round(new_feat_val,decimals=decimals)))
+            print('\t\tchanges your target by {} to {}'.format(np.round(biggest_move,decimals=decimals), np.round(best_val,decimals=decimals)))
+            print('----------')
+            if not (((curr_val/final_val) >(1+tol)) or ((curr_val/final_val) <(1-tol))):
+                print('Tolerance of {} reached'.format(tol))
+                print('Current value of {} is within {}% of {}'.format(np.round(curr_val,decimals=decimals),(100*tol),np.round(final_val,decimals=decimals)))
+        feat_list.append(column_names[best_column])
+        column_list.remove(best_column)
+        move_list.append(biggest_move)
+        feat_val_change_list.append((old_feat_val, new_feat_val))
+    return feat_list, feat_val_change_list, move_list, val_list
+
+
+
+
