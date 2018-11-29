@@ -7,14 +7,14 @@ To Deploy to Test Server:
 
 1. Run `python setup.py sdist bdist_wheel`
 
-2. Upload using twine - `twine upload -r test dist/ml_insights-0.0.<version>.*`
+2. Upload using twine - `twine upload -r test dist/ml_insights-0.0.<version>*`
 3. Install from Test PyPi - `pip install -i https://testpypi.python.org/pypi ml_insights --upgrade`
 
 To Deploy to PyPi Server:
 
 1. Run `python setup.py sdist bdist_wheel`
 
-2. Upload using twine - `twine upload dist/ml_insights-0.0.<version>.*`
+2. Upload using twine - `twine upload dist/ml_insights-0.0.<version>*`
 3. Install from Test PyPi - `pip install ml_insights --upgrade`
 
 
