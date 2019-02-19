@@ -10,4 +10,4 @@ from .calibration_utils import compact_logit,inverse_compact_logit,plot_prob_cal
 from . import metrics
 from .CVModel import CVModel
 
-__version__ = '0.0.17'
+__version__ = '0.0.18'
