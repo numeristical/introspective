@@ -5,6 +5,7 @@ import numpy as np
 import sklearn
 import random
 import matplotlib.pyplot as plt
+from scipy.stats import binom
 
 try:
     from sklearn.model_selection import StratifiedKFold, KFold
@@ -158,27 +159,6 @@ def prob_calibration_function(truthvec, scorevec, reg_param_vec='default', knots
 
     return calibrate_scores
 
-# def train_and_calibrate_cv(model, X_tr, y_tr, cv=5):
-#     y_pred_xval = np.zeros(len(y_tr))
-#     skf = cross_validation.StratifiedKFold(y_tr, n_folds=cv, shuffle=True)
-#     i = 0
-#     for train, test in skf:
-#         i = i+1
-#         print("training fold {} of {}".format(i, cv))
-#         X_train_xval = np.array(X_tr)[train, :]
-#         X_test_xval = np.array(X_tr)[test, :]
-#         y_train_xval = np.array(y_tr)[train]
-#         # We could also copy the model first and then fit it
-#         model_copy = clone(model)
-#         model_copy.fit(X_train_xval, y_train_xval)
-#         y_pred_xval[test]=model.predict_proba(X_test_xval)[:,1]
-#     print("training full model")
-#     model_copy = clone(model)
-#     model_copy.fit(X_tr,y_tr)
-#     print("calibrating function")
-#     calib_func = prob_calibration_function(y_tr, y_pred_xval)
-#     return model_copy, calib_func
-
 
 def mean_squared_error_trunc(y_true, y_pred,eps=1e-15):
     y_pred = np.where(y_pred<eps,eps,y_pred)
@@ -260,8 +240,8 @@ def plot_prob_calibration(calib_fn, show_baseline=True, ax=None, **kwargs):
         ax.plot(np.linspace(0,1,100),(np.linspace(0,1,100)),'k--')
     ax.axis([-0.1,1.1,-0.1,1.1])
 
-def plot_reliability_diagram(y,x,bins=np.linspace(0,1,21),size_points=True, show_baseline=True,
-                                error_bars=True, ax=None, marker='+',c='red', **kwargs):
+def plot_reliability_diagram(y,x,bins=np.linspace(0,1,21),size_points=False, show_baseline=True,
+                                error_bars=True, error_bar_alpha = .05, ax=None, marker='+',c='red', **kwargs):
     if ax is None:
         ax = plt.gca()
         fig = ax.get_figure()
@@ -277,11 +257,13 @@ def plot_reliability_diagram(y,x,bins=np.linspace(0,1,21),size_points=True, show
         if size_points:
             plt.scatter(x_pts_to_graph,y_pts_to_graph,s=pt_sizes,marker=marker,c=c, **kwargs)
         else:
-            plt.scatter(x_pts_to_graph,y_pts_to_graph, **kwargs)
-    #plt.axis([-0.1,1.1,-0.1,1.1])
+            plt.scatter(x_pts_to_graph,y_pts_to_graph, c=c, **kwargs)
+    plt.axis([-0.1,1.1,-0.1,1.1])
+    
     if error_bars:
-        plt.errorbar(x_pts_to_graph, x_pts_to_graph,
-                    yerr=1.96*x_pts_to_graph*(1-x_pts_to_graph)/(np.sqrt(pt_sizes)), capsize=5)
+        yerr_mat = binom.interval(1-error_bar_alpha,pt_sizes,x_pts_to_graph)/pt_sizes - x_pts_to_graph
+        yerr_mat[0,:] = -yerr_mat[0,:]
+        plt.errorbar(x_pts_to_graph, x_pts_to_graph, yerr=yerr_mat, capsize=5)
     return(x_pts_to_graph,y_pts_to_graph,pt_sizes)
 
 def compact_logit(x, eps=.00001):

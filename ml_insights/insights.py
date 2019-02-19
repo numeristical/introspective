@@ -201,7 +201,7 @@ class ModelXRay(object):
         return results
 
 
-    def feature_effect_summary(self, kind="boxh", num_features=20, ax=None):
+    def feature_effect_summary(self, kind="boxh", num_features=20, y_scaling = 'none', ax=None):
         '''This function plots a comparison of the effects of different features in a complex predictive model.
 
         In more complicated predictive models, the effect of an individual feature can be highly dependent on the values
@@ -231,7 +231,17 @@ class ModelXRay(object):
         ## Convert Pandas DataFrame to nparray explicitly to make life easier
 
         columns = list(self.results.keys())
-        result_data = [importance_distribution_of_variable(self.results[col_name][1]) for col_name in columns]
+        logit_func = lambda x: np.log(x/(1-x))
+        logit10_func = lambda x: np.log10(x/(1-x))
+        logit2_func = lambda x: np.log2(x/(1-x))
+        if y_scaling=='logit':
+            result_data = [importance_distribution_of_variable(logit_func(self.results[col_name][1])) for col_name in columns]
+        elif y_scaling=='logit10':
+            result_data = [importance_distribution_of_variable(logit10_func(self.results[col_name][1])) for col_name in columns]
+        elif y_scaling=='logit2':
+            result_data = [importance_distribution_of_variable(logit2_func(self.results[col_name][1])) for col_name in columns]
+        else:
+            result_data = [importance_distribution_of_variable(self.results[col_name][1]) for col_name in columns]
         sortind = np.argsort([np.median(d) for d in result_data])
         if num_features and num_features > 0:
             num_features = min(num_features, len(columns))
@@ -248,7 +258,7 @@ class ModelXRay(object):
         ax.set_yticklabels([columns[idx] for idx in sortind][-num_features:]);
 
 
-    def feature_dependence_plots(self, show_base_points=True, pts_selected='sample',
+    def feature_dependence_plots(self, y_scaling='none', show_base_points=True, pts_selected='sample',
         columns = None, num_pts=5, figsize=None):
         '''This function visualizes the effect of a single variable in models with complicated dependencies.
         Given a dataset, it will select points in that dataset, and then change the select column across
@@ -271,6 +281,12 @@ class ModelXRay(object):
         if show_base_points:
             base_rows = self._get_data_rows(row_indexes)
             y_base_points = self._get_predictions(base_rows)
+            if y_scaling=='logit':
+                y_base_points = np.log(y_base_points/(1-y_base_points))
+            if y_scaling=='logit10':
+                y_base_points = np.log10(y_base_points/(1-y_base_points))
+            if y_scaling=='logit2':
+                y_base_points = np.log2(y_base_points/(1-y_base_points))
         else:
             y_base_points = None
 
@@ -281,7 +297,14 @@ class ModelXRay(object):
         for col_name, ax in zip(columns, axes.flatten()):
             x = self.results[col_name][0]
             y_values = self.results[col_name][1][row_indexes]
-            for y in y_values:
+            y_plot = y_values
+            if y_scaling=='logit':
+                y_plot = np.log(y_values/(1-y_values))
+            if y_scaling=='logit10':
+                y_plot = np.log10(y_values/(1-y_values))
+            if y_scaling=='logit2':
+                y_plot = np.log2(y_values/(1-y_values))
+            for y in y_plot:
                 ax.plot(x, y)
             # Plot Base Points
             if y_base_points is not None:

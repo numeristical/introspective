@@ -40,32 +40,47 @@ def inverse_entropy_norm_lik(truth_vec,pred_probs_vec):
     return 1- inverse_binary_entropy_nats(-avg_log_lik(truth_vec,pred_probs_vec))
 
 
-def exact_ROC_AUC(truth_vec,score_vec):
+def roc_auc_direct(truth_vec,score_vec):
+    """Directly computes the ROC AUC by counting the proportion of 1-0 pairs which are correctly
+    ordered.
     """
-    Ranking based metrics
-    TODO:
-    Should check that truth_vec and score_vec are same length
-    Should check that truth_vec is either 1 or 0
-    """
+
+    if len(score_vec.shape)>1:
+        score_vec = score_vec[:,1]
+
     scorevec1 = np.sort(score_vec[truth_vec==1])
     scorevec0 = np.sort(score_vec[truth_vec==0])
     len1 = len(scorevec1)
     len0 = len(scorevec0)
     denom = len1*len0
-    i0 = 0
-    i1 = 0
-    gtnumer = 0
-    while i1<len1:
-        while ((i0<len0) and (scorevec1[i1]>scorevec0[i0])):
-            i0+=1
-        gtnumer += (i0)
+    dvi_1 = np.where(np.diff(scorevec1))[0]
+    dvi_0 = np.where(np.diff(scorevec0))[0]
+    dvi_1 = np.concatenate((dvi_1,[len(scorevec1)-1]))
+    dvi_0 = np.concatenate((dvi_0,[len(scorevec0)-1]))
+
+    weight_vec_1 = np.concatenate(([dvi_1[0]+1], np.diff(dvi_1)))
+    weight_vec_0 = np.concatenate(([dvi_0[0]+1], np.diff(dvi_0)))
+    len_dvi_1 = len(dvi_1)
+    len_dvi_0 = len(dvi_0)
+    i0,i1 = 0,0
+    amassed_weight_0 = 0
+    gtnumer, geqnumer = 0,0
+    while i1<len_dvi_1:
+        amassed_weight_1 = weight_vec_1[i1]
+        while ((i0<len_dvi_0) and (scorevec1[dvi_1[i1]]>scorevec0[dvi_0[i0]])):
+            #i0+=1
+            amassed_weight_0+=weight_vec_0[i0]
+            i0+=1                      
+        gtnumer += (amassed_weight_0 * amassed_weight_1)
+        
+        i0a = i0
+        amassed_weight_0a = amassed_weight_0
+        while ((i0a<len_dvi_0) and (scorevec1[dvi_1[i1]]>=scorevec0[dvi_0[i0a]])):
+            #i0+=1
+            amassed_weight_0a+=weight_vec_0[i0a]
+            i0a+=1            
+        geqnumer += (amassed_weight_0a * amassed_weight_1)
         i1+=1
     i0 = 0
     i1 = 0
-    geqnumer = 0
-    while i1<len1:
-        while ((i0<len0) and (scorevec1[i1]>=scorevec0[i0])):
-            i0+=1
-        geqnumer += (i0)
-        i1+=1
     return(.5*(gtnumer+geqnumer)/denom)
