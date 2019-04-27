@@ -241,17 +241,19 @@ def plot_prob_calibration(calib_fn, show_baseline=True, ax=None, **kwargs):
     ax.axis([-0.1,1.1,-0.1,1.1])
 
 def plot_reliability_diagram(y,x,bins=np.linspace(0,1,21),size_points=False, show_baseline=True,
-                                error_bars=True, error_bar_alpha = .05, ax=None, marker='+',c='red', **kwargs):
-    if ax is None:
-        ax = plt.gca()
-        fig = ax.get_figure()
+                                error_bars=True, error_bar_alpha = .05, marker='+',c='red', **kwargs):
+    # if ax is None:
+    #     ax = plt.gca()
+    #     fig = ax.get_figure()
     digitized_x = np.digitize(x, bins)
     mean_count_array = np.array([[np.mean(y[digitized_x == i]),len(y[digitized_x == i]),np.mean(x[digitized_x==i])] for i in np.unique(digitized_x)])
     x_pts_to_graph = mean_count_array[:,2]
     y_pts_to_graph = mean_count_array[:,0]
     pt_sizes = mean_count_array[:,1]
+    plt.subplot(1,2,1)
+
     if show_baseline:
-        ax.plot(np.linspace(0,1,100),(np.linspace(0,1,100)),'k--')
+        plt.plot(np.linspace(0,1,100),(np.linspace(0,1,100)),'k--')
 #        ax.loglog(np.linspace(0,1,100),(np.linspace(0,1,100)),'k--')
     for i in range(len(y_pts_to_graph)):
         if size_points:
@@ -264,6 +266,9 @@ def plot_reliability_diagram(y,x,bins=np.linspace(0,1,21),size_points=False, sho
         yerr_mat = binom.interval(1-error_bar_alpha,pt_sizes,x_pts_to_graph)/pt_sizes - x_pts_to_graph
         yerr_mat[0,:] = -yerr_mat[0,:]
         plt.errorbar(x_pts_to_graph, x_pts_to_graph, yerr=yerr_mat, capsize=5)
+    plt.subplot(1,2,2)
+    plt.hist(x,bins=bins)
+
     return(x_pts_to_graph,y_pts_to_graph,pt_sizes)
 
 def compact_logit(x, eps=.00001):

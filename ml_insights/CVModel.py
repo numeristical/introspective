@@ -109,9 +109,11 @@ class CVModel(BaseEstimator, ClassifierMixin):
     def grid_search(self, X, y, fold_ind, param_grid, score_fn, verbose=True):
         param_arg_list = _get_param_settings_from_grid(param_grid)
         num_settings = len(param_arg_list)
+        print("Size of grid to search = {} different settings".format(num_settings))
         param_list_scores = np.zeros(num_settings)
         old_self = clone(self.base_estimator)
         for i in range(num_settings):
+            print("Fitting setting {} of {}".format(i+1,num_settings))
             curr_param_dict = param_arg_list[i]
             if verbose:
                 print(curr_param_dict)
@@ -120,19 +122,18 @@ class CVModel(BaseEstimator, ClassifierMixin):
             curr_preds = self.predict_proba(X, fold_ind)
             if type(score_fn) == list:
                 for j, fn in enumerate(score_fn):
-                    if j==0:
-                        curr_score= fn(y, curr_preds)
-                        if verbose:
-                            print(curr_param_dict,'score function '+str(j)+':',curr_score)
-                    else:
-                        if verbose:
-                            print_score = fn(y, curr_preds)
-                            print(curr_param_dict,'score function '+str(j)+':', print_score)
+                    curr_score= fn(y, curr_preds)
+                    param_arg_list[i]['score_'+str(j)] = curr_score
+                    if verbose:
+                        print(curr_param_dict,'score function '+str(j)+':',curr_score)
             else:
                 curr_score= score_fn(y, curr_preds)
+                param_arg_list[i]['score'] = curr_score
+                if verbose:
+                    print(curr_param_dict,'score function '+':',curr_score)
             param_list_scores[i]=curr_score
         self.base_estimator = old_self
-        return(list(zip(param_arg_list,param_list_scores)))
+        return param_arg_list
 
 
 def _get_param_settings_from_grid(param_grid):
