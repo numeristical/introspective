@@ -1,6 +1,11 @@
 import numpy as np
 import pandas as pd
-import xgboost as xgb
+
+try:
+    import xgboost as xgb
+
+except ImportError:
+    xgb_installed = False
 
 def consolidate_reason_scores(df_ind_expl, dict_map):
     reason_list = dict_map.keys()

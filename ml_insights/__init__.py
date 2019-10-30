@@ -14,4 +14,4 @@ from .CVModel import CVModel
 from . import graphs
 from . import discrete_dt
 
-__version__ = '0.0.20'
+__version__ = '0.0.21'
