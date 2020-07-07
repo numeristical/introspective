@@ -320,6 +320,9 @@ man_pages = [
 #
 # man_show_urls = False
 
+# mock imports
+autodoc_mock_imports = ["sklearn"]
+
 
 # -- Options for Texinfo output -------------------------------------------
 
