@@ -9,13 +9,13 @@ with open('README.rst') as readme_file:
 requirements = [
     "pandas>=0.23",
     "numpy>=1.16.0",
-    "scikit-learn>=0.21.0",
+    "scikit-learn>=0.18.0",
     "scipy>=1.0"
 ]
 
 setup(
     name='ml_insights',
-    version='0.1.0',
+    version='0.1.1',
     description="Package to understand ML Models",
     long_description=readme,
     author="Brian Lucena / Ramesh Sampath",

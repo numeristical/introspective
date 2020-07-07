@@ -14,4 +14,4 @@ from .shap_insights import consolidate_reason_scores, get_reason_codes, cv_colum
 from . import metrics
 from .CVModel import CVModel
 
-__version__ = '0.1.0'
+__version__ = '0.1.1'
