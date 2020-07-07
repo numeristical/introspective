@@ -1,6 +1,7 @@
 """Calibration of predicted probabilities."""
 import numpy as np
 import sklearn
+import warnings
 from sklearn.base import BaseEstimator, ClassifierMixin, clone
 
 try:
@@ -66,6 +67,10 @@ class SplineCalibratedClassifierCV(BaseEstimator, ClassifierMixin):
     ----------
    """
     def __init__(self, base_estimator=None, method='logistic', cv=5, transform_type='none', cl_eps = .000001, **calib_kwargs):
+        warn_msg = ('\nThis class is deprecated and will eventually be removed.' + 
+                    '\nPlease use the SplineCalib class for calibration.')
+        warnings.warn(warn_msg, FutureWarning)
+
         self.base_estimator = base_estimator
         self.uncalibrated_classifier = None
         self.calib_func = None
@@ -326,6 +331,10 @@ class SplineCalibratedClassifierMulticlassCV(BaseEstimator, ClassifierMixin):
     ----------
    """
     def __init__(self, base_estimator=None, method='logistic', cv=5, **calib_kwargs):
+        warn_msg = ('\nThis class is deprecated and will eventually be removed.' + 
+                    '\nPlease use the SplineCalib class for calibration.')
+        warnings.warn(warn_msg, FutureWarning)
+
         self.base_estimator = base_estimator
         self.uncalibrated_classifier = None
         self.calib_func = None

@@ -3,10 +3,18 @@
 
 Welcome to ML-Insights!
 
-This is a package to understand supervised ML Models.  This package has been tested with Scikit-Learn and XGBoost library.  It should work with any machine learning library that has a `predict` and `predict_proba` methods for regression and classification estimators.
+This package contains two main sets of tools:
 
-There are currently two main sets of capabilities of this package.  The first is around understanding "black-box" models
-via the "Model X-Ray".  The second is for probability calibration.
+- SplineCalib: Spline-based Probability Calibration
+- ModelXRay: Model Interpretability
+
+## Probability Calibration
+
+For probability calibration, use the SplineCalib class.  Detailed documentation is available here:
+[https://ml-insights.readthedocs.io](https://ml-insights.readthedocs.io)
+
+Find more detailed examples here:
+[https://github.com/numeristical/introspective/tree/master/examples](https://github.com/numeristical/introspective/tree/master/examples)
 
 ## Model Interpretation
 
@@ -21,20 +29,6 @@ For understanding black-box models, the main entry point is the `ModelXRay` clas
 Find more detailed examples here:
 [https://github.com/numeristical/introspective/tree/master/examples](https://github.com/numeristical/introspective/tree/master/examples)
 
-## Probability Calibration
-
-For probability calibration, the main class is the `SplineCalibratedClassifierCV`.  Using this class you can train your
-base model, and the corrective calibration function with just a couple of lines of code.  See the examples by following
-the link below.
-
-    >>> rfm = RandomForestClassifier(n_estimators = 500, class_weight='balanced_subsample')
-    >>> rfm_cv = mli.SplineCalibratedClassifierCV(rfm)
-    >>> rfm_cv.fit(X_train,y_train)
-    >>> test_res_calib_cv = rfm_cv.predict_proba(X_test)[:,1]
-    >>> log_loss(y_test,test_res_calib_cv)
-
-Find more detailed examples here:
-[https://github.com/numeristical/introspective/tree/master/examples](https://github.com/numeristical/introspective/tree/master/examples)
 
 ## Other Documentation
 
@@ -43,7 +37,7 @@ Find more detailed examples here:
 Disclaimer
 ==========
 
-We have tested this tool to the best of our ability, but understand that it may have bugs.  It was developed on Python 3.5, so should work better with Python 3 than 2.  Use at your own risk, but feel free to report any bugs to our github. <https://github.com/numeristical/introspective>
+We have tested this tool to the best of our ability, but understand that it may have bugs.  It was developed on Python 3.  Use at your own risk, but feel free to report any bugs to our github. <https://github.com/numeristical/introspective>
 
 Installation
 =============
@@ -71,5 +65,7 @@ Developed By
 
 References
 ==========
+
+Lucena, B. 2018. Spline-Based Probability Calibration. https://arxiv.org/abs/1809.07751
 
 Alex Goldstein, Adam Kapelner, Justin Bleich, and Emil Pitkin. 2014. Peeking Inside the Black Box: Visualizing Statistical Learning With Plots of Individual Conditional Expectation. Journal of Computational and Graphical Statistics (March 2014)

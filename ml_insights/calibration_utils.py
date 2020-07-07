@@ -5,8 +5,11 @@ import numpy as np
 import sklearn
 import random
 import matplotlib.pyplot as plt
+import warnings
 from scipy.stats import binom
-
+from sklearn.base import clone
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import log_loss
 try:
     from sklearn.model_selection import StratifiedKFold, KFold
 except:
@@ -16,6 +19,7 @@ from .utils import _gca
 
 
 def _natural_cubic_spline_basis_expansion(xpts, knots):
+    """Does the natural cubis spline bases for a set of points and knots"""
     num_knots = len(knots)
     num_pts = len(xpts)
     outmat = np.zeros((num_pts,num_knots))
@@ -26,7 +30,8 @@ def _natural_cubic_spline_basis_expansion(xpts, knots):
         def make_func_d(k):
             def func_d(x):
                 denom = knots[-1] - knots[k-1]
-                numer = np.maximum(x-knots[k-1], np.zeros(len(x))) ** 3 - np.maximum(x-knots[-1], np.zeros(len(x))) ** 3
+                numer = (np.maximum(x-knots[k-1], np.zeros(len(x))) ** 3 - 
+                        np.maximum(x-knots[-1], np.zeros(len(x))) ** 3)
                 return numer/denom
             return func_d
 
@@ -89,6 +94,10 @@ def prob_calibration_function(truthvec, scorevec, reg_param_vec='default', knots
     """
     from sklearn import linear_model
     from sklearn.metrics import log_loss, make_scorer
+
+    warn_msg = ('\nThis function is deprecated and will eventually be removed.' + 
+                '\nPlease use the SplineCalib class for calibration.')
+    warnings.warn(warn_msg, FutureWarning)
 
     if (unity_prior_weight>0):
         scorevec_coda, truthvec_coda = create_yeqx_bias_vectors(unity_prior_gridsize)
@@ -160,10 +169,10 @@ def prob_calibration_function(truthvec, scorevec, reg_param_vec='default', knots
     return calibrate_scores
 
 
-def mean_squared_error_trunc(y_true, y_pred,eps=1e-15):
-    y_pred = np.where(y_pred<eps,eps,y_pred)
-    y_pred = np.where(y_pred>1-eps,1-eps,y_pred)
-    return np.average((y_true-y_pred)**2)
+def mean_squared_error_trunc(y_true, y_pred, eps=1e-15):
+    y_pred = np.maximum(y_pred, eps)
+    y_pred = np.minimum(y_pred,1-eps)
+    return np.mean((y_true-y_pred)**2)
 
 
 def prob_calibration_function_multiclass(truthvec, scoremat, verbose=False, **kwargs):
@@ -240,35 +249,78 @@ def plot_prob_calibration(calib_fn, show_baseline=True, ax=None, **kwargs):
         ax.plot(np.linspace(0,1,100),(np.linspace(0,1,100)),'k--')
     ax.axis([-0.1,1.1,-0.1,1.1])
 
-def plot_reliability_diagram(y,x,bins=np.linspace(0,1,21),size_points=False, show_baseline=True,
-                                error_bars=True, error_bar_alpha = .05, marker='+',c='red', **kwargs):
-    # if ax is None:
-    #     ax = plt.gca()
-    #     fig = ax.get_figure()
+def plot_reliability_diagram(y,x,bins=np.linspace(0,1,21),size_points=False,
+                             show_baseline=True, error_bars=True,
+                             error_bar_alpha=.05, show_histogram=False,
+                             c='red', **kwargs):
+    """Plots a reliability diagram of predicted vs empirical probabilities.
+
+    
+    Parameters
+    ----------
+    y: array-like, length (n_samples). The true outcome values as integers (0 or 1)
+
+    x: The predicted probabilities, between 0 and 1 inclusize.
+
+    bins: array-like, the endpoints of the bins used to aggregate and estimate the
+        empirical probabilities.  Default is 20 equally sized bins
+        from 0 to 1, i.e. [0,0.05,0.1,...,.95, .1].
+
+    size_points: scale the size of the plotted points to reflect the number of
+        data points in the bin.  This may not work well if some bins are much
+        larger than others.  Default is False.
+
+    show_baseline: whether or not to print a dotted black line representing
+        y=x (perfect calibration).  Default is True
+
+    error_bars: whether to show error bars reflecting the confidence
+        interval under the assumption that the input probabilities are
+        perfectly calibrated. Default is True.
+
+    error_bar_alpha: The alpha value to use for the error_bars.  Default
+        is .05 (a 95% CI).  Confidence intervals are based on the exact
+        binomial distribution, not the normal approximation.
+
+    show_histogram: Whether or not to show a separate histogram of the
+        number of values in each bin.  Default is False
+
+    c: color of the plotted points.  Default is 'red'.
+
+    **kwargs: additional args to be passed to the plt.scatter matplotlib call.
+
+    Returns
+    -------
+    A tuple of the x_values, y_values, and associated bin_counts for each of
+    the points in the plot.
+    """
     digitized_x = np.digitize(x, bins)
-    mean_count_array = np.array([[np.mean(y[digitized_x == i]),len(y[digitized_x == i]),np.mean(x[digitized_x==i])] for i in np.unique(digitized_x)])
+    mean_count_array = np.array([[np.mean(y[digitized_x == i]),
+                                  len(y[digitized_x == i]),
+                                  np.mean(x[digitized_x==i])] 
+                                  for i in np.unique(digitized_x)])
     x_pts_to_graph = mean_count_array[:,2]
     y_pts_to_graph = mean_count_array[:,0]
     pt_sizes = mean_count_array[:,1]
-    plt.subplot(1,2,1)
-
+    if show_histogram:
+        plt.subplot(1,2,1)
     if show_baseline:
         plt.plot(np.linspace(0,1,100),(np.linspace(0,1,100)),'k--')
-#        ax.loglog(np.linspace(0,1,100),(np.linspace(0,1,100)),'k--')
     for i in range(len(y_pts_to_graph)):
         if size_points:
-            plt.scatter(x_pts_to_graph,y_pts_to_graph,s=pt_sizes,marker=marker,c=c, **kwargs)
+            plt.scatter(x_pts_to_graph, y_pts_to_graph,
+                        s=pt_sizes, c=c, **kwargs)
         else:
             plt.scatter(x_pts_to_graph,y_pts_to_graph, c=c, **kwargs)
     plt.axis([-0.1,1.1,-0.1,1.1])
-    
+    plt.xlabel('Predicted')
+    plt.ylabel('Empirical')
     if error_bars:
         yerr_mat = binom.interval(1-error_bar_alpha,pt_sizes,x_pts_to_graph)/pt_sizes - x_pts_to_graph
         yerr_mat[0,:] = -yerr_mat[0,:]
         plt.errorbar(x_pts_to_graph, x_pts_to_graph, yerr=yerr_mat, capsize=5)
-    plt.subplot(1,2,2)
-    plt.hist(x,bins=bins)
-
+    if show_histogram:
+        plt.subplot(1,2,2)
+        plt.hist(x,bins=bins)
     return(x_pts_to_graph,y_pts_to_graph,pt_sizes)
 
 def compact_logit(x, eps=.00001):
@@ -291,9 +343,126 @@ def inverse_compact_logit(x, eps=.00001):
 
 
 def create_yeqx_bias_vectors(gridsize=10):
+    """Returns unweighted, augmented data for a particular grid-size."""
     scorevec_coda = np.sort(np.tile(np.arange(gridsize + 1)/gridsize, reps = (gridsize)))
     truthvec_coda = np.array([])
     for i in range(gridsize + 1):
         added_bit = np.concatenate((np.zeros(gridsize - i), np.ones(i)))
         truthvec_coda = np.concatenate((truthvec_coda, added_bit))
     return scorevec_coda, truthvec_coda
+
+
+def cv_predictions(model, X, y, num_cv_folds=5, stratified=True, clone_model=True, random_state=42):
+    """Creates a vector of cross-validated predictions given the model and data.
+
+   This function takes a model and repeatedly fits it on all but one fold and
+   then makes predictions (using `predict_proba`) on the remaining fold.  It
+   returns the full set of cross-validated predictions.
+
+    Parameters
+    ----------
+    model: The model to be used for the fit and predict_proba calls.  If clone_model
+        is True, model will be copied before it is refit, and the original will not 
+        be modified.  If clone_model is False, model will be refit and changed.
+        The `clone_model` option may not work outside of sklearn.
+
+    X: The feature matrix to be used for the cross-validated predictions
+
+    y: The outcome vector to be used for cross-validated predictions.  Should
+        contain integers from 0 to num_classes-1.
+
+    num_cv_folds: The number of folds to create when doing the cross-validated
+        fit and predict calls.  More folds will take more time but may yield 
+        better results.  Default is 5.
+
+    stratified: Boolean variable indicating whether or not to assign points
+        to folds in a stratified manner.  Default is True.
+
+    clone_model: Whether to use the sklearn "clone" function to copy the model
+        before it is refit.  If False, the model object will be modified.  The 
+        setting True may not work outside of sklearn.  In this case it is
+        best to make an identical (before fitting) model object and pass that
+        as the argument.
+
+    random_state: A random_state to pass to the fold selection.
+
+    Returns
+    ---------------------
+
+    A matrix of size (nrows, ncols) where nrows is the number of rows in X and
+    ncols is the number of classes as indicated by y.
+    """
+    if stratified:
+        foldnum_vec = get_stratified_foldnums(y, num_cv_folds, random_state)
+    else:
+        foldnum_vec = np.floor(np.random.uniform(size=X.shape[0])*num_cv_folds).astype(int)
+    model_to_fit = clone(model) if clone_model else model
+    n_classes = np.max(y).astype(int)+1
+    out_probs = np.zeros((X.shape[0],n_classes))
+    for fn in range(num_cv_folds):
+        X_tr = X.loc[foldnum_vec==fn]
+        y_tr = y[foldnum_vec==fn]
+        X_te = X.loc[foldnum_vec!=fn]
+        model_to_fit.fit(X_tr, y_tr)
+        out_probs[foldnum_vec!=fn,:] = model_to_fit.predict_proba(X_te)
+    
+    return(out_probs)
+
+def get_stratified_foldnums(y, num_folds, random_state=42):
+    """Given an outcome vector y, assigns each data point to a fold in a stratified manner.
+    
+    Assumes that y contains only integers between 0 and num_classes-1
+    """
+    fn_vec = -1 * np.ones(len(y))
+    for y_val in np.unique(y):
+        curr_yval_indices = np.where(y==y_val)[0]
+        np.random.seed(random_state)
+        np.random.shuffle(curr_yval_indices)
+        index_indices = np.round((len(curr_yval_indices)/num_folds)*np.arange(num_folds+1)).astype(int)
+        for i in range(num_folds):
+            fold_to_assign = i if ((y_val%2)==0) else (num_folds-i-1)
+            fn_vec[curr_yval_indices[index_indices[i]:index_indices[i+1]]] = fold_to_assign
+    return(fn_vec)
+
+def logreg_cv(X, y, num_folds, reg_param_vec, penalty, solver, max_iter,
+              tol, weightvec=None, random_state=42, reg_prec=4):
+    """Routine to find the best fitting penalized Logistic Regression.
+
+    User must provide, the X, y, number of folds, range of `C` parameter
+    and other specs for the logistic regression solver.
+    """
+    fn_vec = get_stratified_foldnums(y, num_folds, random_state=random_state)
+    preds = np.zeros(len(y))
+    ll_vec = np.zeros(len(reg_param_vec))
+    for i,c_val in enumerate(reg_param_vec):
+        for fn in range(num_folds):
+            X_tr = X[fn_vec!=fn,:]
+            y_tr = y[fn_vec!=fn]
+            X_te = X[fn_vec==fn,:]
+            lrobj = LogisticRegression(penalty=penalty,
+                                       C=c_val,
+                                      solver=solver,
+                                      fit_intercept=False,
+                                      max_iter=max_iter,
+                                      tol=tol)
+            if weightvec is not None:
+                weightvec_tr = weightvec[fn_vec!=fn]
+                lrobj.fit(X_tr, y_tr, weightvec_tr)
+            else:
+                lrobj.fit(X_tr, y_tr)
+            preds[fn_vec==fn] = lrobj.predict_proba(X_te)[:,1]
+        ll_vec[i]=log_loss(y,preds)
+    best_index = np.argmin(np.round(ll_vec,decimals=reg_prec))
+    best_c_val = reg_param_vec[best_index]
+    best_loss = ll_vec[best_index]
+    lrobj = LogisticRegression(penalty=penalty,
+                               C=best_c_val,
+                               solver=solver,
+                               fit_intercept=False,
+                               max_iter=max_iter,
+                               tol=tol)
+    if weightvec is not None:
+        lrobj.fit(X,y,weightvec)
+    else:
+        lrobj.fit(X,y)
+    return(best_c_val, ll_vec, lrobj)

@@ -7,14 +7,15 @@ with open('README.rst') as readme_file:
     readme = readme_file.read()
 
 requirements = [
-    # TODO: put package requirements here
-    "pandas",
-    "numpy"
+    "pandas>=0.23",
+    "numpy>=1.16.0",
+    "scikit-learn>=0.21.0",
+    "scipy>=1.0"
 ]
 
 setup(
     name='ml_insights',
-    version='0.0.21',
+    version='0.1.0',
     description="Package to understand ML Models",
     long_description=readme,
     author="Brian Lucena / Ramesh Sampath",
@@ -35,10 +36,11 @@ setup(
         'Intended Audience :: Developers',
         'License :: OSI Approved :: MIT License',
         'Natural Language :: English',
-        "Programming Language :: Python :: 2",
-        'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8'
     ]
 )
