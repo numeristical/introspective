@@ -27,64 +27,76 @@ class SplineCalib(object):
         The 'l1' penalty can only be used with the 'liblinear' or 'saga'
         solver and tends to be considerably slower.
 
-    solver : Which solver to use in the sklearn LogisticRegression object that
-       powers the spline fitting.  Options are 'lbfgs','liblinear','newton-cg',
-       'sag','saga'. Specifying 'default' will use the 'lbfgs' for L2 penalty
-       and 'liblinear' for L1.
+    solver : 'lbfgs','liblinear','newton-cg','sag','saga'
+        Which solver to use in the sklearn LogisticRegression object that
+        powers the spline fitting. Specifying 'default' will use the 'lbfgs'
+        for L2 penalty and 'liblinear' for L1.
 
-    knot_sample_size: The number of knots to randomly sample from the training
+    knot_sample_size : 
+        The number of knots to randomly sample from the training
         values.  More knots take longer to fit.  Too few knots may underfit.
         Too many knots could overfit, but usually the regularization will
         control that from happening. If `knot_sample_size` exceeds the number
         of unique values in the input, then all unique values will be chosen.
 
-    add_knots: A list (or np_array) of knots that will be used for the 
+    add_knots :
+        A list (or np_array) of knots that will be used for the 
         spline fitting in addition to the random sample.  This may be useful
         if you want to force certain knots to be used in areas where the data
         is sparse.
 
-    reg_param_vec: A list (or np_array) of values to try for the 'C' parameter
+    reg_param_vec :
+        A list (or np_array) of values to try for the 'C' parameter
         for regularization in the sklearn LogisticRegression. These should
         be positive numbers on a logarithmic scale for best results.  If
         'default' is chosen it will try 17 evenly spaced values (log scale)
         between .0001 and 10000 (inclusive)
 
-    cv_spline: Number of folds to use for the cross-validation to find the 
+    cv_spline : 
+        Number of folds to use for the cross-validation to find the 
         best regularization parameter.  Default is 5.  Folds are chosen
         in a stratified manner.
 
-    random_state: If desired, can specify the random state for the generation
+    random_state : 
+        If desired, can specify the random state for the generation
         of the stratified folds.
 
-    unity_prior: If True, routine will add synthetic data along the axis y=x as
+    unity_prior : 
+        If True, routine will add synthetic data along the axis y=x as
         a "prior" distribution that favors that function.  Default is False.
 
-    unity_prior_weight: The total weight of data points added when unity_prior
+    unity_prior_weight : 
+        The total weight of data points added when unity_prior
         is set to True.  Bigger values will force the calibration curve closer
         to the line y=x.
 
-    unity_prior_gridsize: The resolution of the grid used to create the
+    unity_prior_gridsize : 
+        The resolution of the grid used to create the
         unity_prior data augmentation.  Default is 100, meaning it would
         create synthetic data at x=0, .01 ,.02 ,...,.99 ,1.
 
-    logodds_scale: Whether or not to transform the x-values to the log odds
+    logodds_scale : 
+        Whether or not to transform the x-values to the log odds
         scale before doing the basis expansion.  Default is True and is 
         recommended unless it is suspected that the uncalibrated probabilities
         already have a logistic relationship to the true probabilities.
 
-    logodds_eps: Used only when logodds_scale=True.  Since 0 and 1 map to
+    logodds_eps : 
+        Used only when logodds_scale=True.  Since 0 and 1 map to
         positive and negative infinity on the logodds scale, we must
         specify a minimum and maximum probability before the transformation.
         Default is 'auto' which chooses a reasonable value based on the
         smallest positive value seen and the largest value smaller than 1.
 
-    reg_prec: A positive integer designating the number of decimal places to 
+    reg_prec : 
+        A positive integer designating the number of decimal places to 
         which to round the log_loss when choosing the best regularization
         parameter. Algorithm breaks ties in favor of more regularization. 
         Higher numbers will potentially use less regularization and lower 
         numbers use more regularization. Default is 4.
 
-    force_knot_endpts: If True, the smallest and largest input value will
+    force_knot_endpts : 
+        If True, the smallest and largest input value will
         automatically chosen as knots, and `knot_sample_size`-2 knots
         will be chosen among the remaining values. Default is True.
 
