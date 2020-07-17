@@ -411,7 +411,7 @@ class SplineCalib(object):
                 warnings.warn('Must specify a class number for Multiclass Calibration')
             else:
                 obj=self.binary_splinecalibs[class_num]
-                plt.plot(np.log10(obj.reg_param_vec),obj.reg_param_scores)
+                plt.plot(np.log10(obj.reg_param_vec),obj.reg_param_scores, marker='x')
                 plt.xlabel('Regularization Parameter (log 10 scale)')
                 plt.ylabel('Average Log Loss across folds')
                 plt.axvline(np.log10(obj.best_reg_param),0,1,color='black',linestyle='--')

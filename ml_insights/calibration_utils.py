@@ -400,11 +400,11 @@ def cv_predictions(model, X, y, num_cv_folds=5, stratified=True, clone_model=Tru
     n_classes = np.max(y).astype(int)+1
     out_probs = np.zeros((X.shape[0],n_classes))
     for fn in range(num_cv_folds):
-        X_tr = X.loc[foldnum_vec==fn]
-        y_tr = y[foldnum_vec==fn]
-        X_te = X.loc[foldnum_vec!=fn]
+        X_tr = X.loc[foldnum_vec!=fn]
+        y_tr = y[foldnum_vec!=fn]
+        X_te = X.loc[foldnum_vec==fn]
         model_to_fit.fit(X_tr, y_tr)
-        out_probs[foldnum_vec!=fn,:] = model_to_fit.predict_proba(X_te)
+        out_probs[foldnum_vec==fn,:] = model_to_fit.predict_proba(X_te)
     
     return(out_probs)
 
