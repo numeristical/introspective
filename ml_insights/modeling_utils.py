@@ -268,7 +268,7 @@ def ice_plot(model, base_data, column_names, range_pts,
                            xmax=rp[int(np.floor(len(rp)/4+1))],
                            linestyle='dotted', color=p[0].get_color())
 
-def get_range_dict(df_test, resolution=200):
+def get_range_dict(df_in, max_pts=200):
     """Get reasonable ranges for all columns for ICE plot.
 
     This function looks at a dataframe, and generates numpy arrays
@@ -277,12 +277,17 @@ def get_range_dict(df_test, resolution=200):
     Parameters
     ----------
 
-    df_test : DataFrame
+    df_in : DataFrame
         A dataframe containing the relevant columns.
 
-    resolution : int, default is 200
-        The number of points to linearly space between the max and 
-        min column values.
+    max_pts : int, default is 200
+        For both numerical and categorical (string) data,  if the 
+        number of unique values is less than max_pts, it will choose
+        all unique values.  Otherwise, for numerical data it will
+        choose max_pts values linearly spaced between the min and max
+        values in df and for categorical (string) data, it will choose
+        the max_pts most common unique values.
+
 
     Returns
     -------
@@ -293,9 +298,14 @@ def get_range_dict(df_test, resolution=200):
         in the `ice_plot` function
 
     """
-    rd = {col: np.linspace(np.min(df_test[col]),np.max(df_test[col]),101) 
-              for col in df_test.columns}
+    rd = {}
+    for col in df_in.columns:
+        if df_in.dtypes[col] == 'O':
+            rd[col] = np.array(df_in[col].value_counts().index[:max_pts])
+        else:
+            unique_vals = np.unique(df_in[col])
+            if len(unique_vals) < max_pts:
+                rd[col] = unique_vals
+            else: 
+                rd[col] = np.linspace(np.min(df_in[col]),np.max(df_in[col]),max_pts) 
     return rd
-
-
-

@@ -426,7 +426,7 @@ class SplineCalib(object):
 
         resolution: The space between the plotted points on the x-axis.
         """
-        tvec = np.linspace(0,1,np.ceil(1/resolution)+1)
+        tvec = np.linspace(0,1,int(np.ceil(1/resolution))+1)
         avec = np.logspace(-16,-3,6)
         bvec = 1-avec
         tvec = np.unique(np.concatenate((tvec,avec,bvec)))
