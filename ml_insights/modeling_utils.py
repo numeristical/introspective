@@ -258,6 +258,9 @@ def ice_plot(model, base_data, column_names, range_pts,
                 pred_vals = np.maximum(pred_vals,1e-16)
                 pred_vals = np.minimum(pred_vals,1-1e-16)
                 pred_vals = np.log(pred_vals/(1-pred_vals))
+                base_pt_val = np.maximum(base_pt_val,1e-16)
+                base_pt_val = np.minimum(base_pt_val,1-1e-16)
+                base_pt_val = np.log(base_pt_val/(1-base_pt_val))
             p = plt.plot(rp, pred_vals[:len(rp)])
             if show_base_pt:
                 plt.scatter(base_pt_df[column],base_pt_val)
