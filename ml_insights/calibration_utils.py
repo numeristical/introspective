@@ -249,9 +249,18 @@ def plot_prob_calibration(calib_fn, show_baseline=True, ax=None, **kwargs):
         ax.plot(np.linspace(0,1,100),(np.linspace(0,1,100)),'k--')
     ax.axis([-0.1,1.1,-0.1,1.1])
 
-def plot_reliability_diagram(y,x,bins=np.linspace(0,1,21),size_points=False,
+def my_logit(vec, base=np.exp(1), eps=1e-16):
+    vec = np.clip(vec, eps, 1-eps)
+    return (1/np.log(base)) * np.log(vec/(1-vec))
+
+def my_logistic(vec, base=np.exp(1)):
+    return 1/(1+base**(-vec))
+
+def plot_reliability_diagram(y,x,bins=np.linspace(0,1,21),
                              show_baseline=True, error_bars=True,
                              error_bar_alpha=.05, show_histogram=False,
+                             scaling='none', scaling_eps=.0001,
+                             scaling_base=10, 
                              c='red', **kwargs):
     """Plots a reliability diagram of predicted vs empirical probabilities.
 
@@ -260,15 +269,11 @@ def plot_reliability_diagram(y,x,bins=np.linspace(0,1,21),size_points=False,
     ----------
     y: array-like, length (n_samples). The true outcome values as integers (0 or 1)
 
-    x: The predicted probabilities, between 0 and 1 inclusize.
+    x: The predicted probabilities, between 0 and 1 inclusive.
 
     bins: array-like, the endpoints of the bins used to aggregate and estimate the
         empirical probabilities.  Default is 20 equally sized bins
         from 0 to 1, i.e. [0,0.05,0.1,...,.95, .1].
-
-    size_points: scale the size of the plotted points to reflect the number of
-        data points in the bin.  This may not work well if some bins are much
-        larger than others.  Default is False.
 
     show_baseline: whether or not to print a dotted black line representing
         y=x (perfect calibration).  Default is True
@@ -284,14 +289,26 @@ def plot_reliability_diagram(y,x,bins=np.linspace(0,1,21),size_points=False,
     show_histogram: Whether or not to show a separate histogram of the
         number of values in each bin.  Default is False
 
+    scaling: Default is 'none'. Alternative is 'logit' which is useful for
+        better examination of calibration near 0 and 1.  Values shown are
+        on the scale provided and then tick marks are relabeled.
+
+    scaling_eps: default is .0001.  Ignored unless scaling='logit'. This 
+        indicates the smallest meaningful positive probability you
+        want to consider.
+
+    scaling_base: default is 10. Ignored unless scaling='logit'. This
+        indicates the base used when scaling back and forth.  Matters
+        only in how it affects the automatic tick marks.
+
     c: color of the plotted points.  Default is 'red'.
 
     **kwargs: additional args to be passed to the plt.scatter matplotlib call.
 
     Returns
     -------
-    A tuple of the x_values, y_values, and associated bin_counts for each of
-    the points in the plot.
+    A dictionary containing the x and y points plotted (unscaled) and the 
+        count in each bin.
     """
     digitized_x = np.digitize(x, bins)
     mean_count_array = np.array([[np.mean(y[digitized_x == i]),
@@ -300,28 +317,57 @@ def plot_reliability_diagram(y,x,bins=np.linspace(0,1,21),size_points=False,
                                   for i in np.unique(digitized_x)])
     x_pts_to_graph = mean_count_array[:,2]
     y_pts_to_graph = mean_count_array[:,0]
-    pt_sizes = mean_count_array[:,1]
+    bin_counts = mean_count_array[:,1]
     if show_histogram:
         plt.subplot(1,2,1)
-    if show_baseline:
-        plt.plot(np.linspace(0,1,100),(np.linspace(0,1,100)),'k--')
-    for i in range(len(y_pts_to_graph)):
-        if size_points:
-            plt.scatter(x_pts_to_graph, y_pts_to_graph,
-                        s=pt_sizes, c=c, **kwargs)
-        else:
-            plt.scatter(x_pts_to_graph,y_pts_to_graph, c=c, **kwargs)
-    plt.axis([-0.1,1.1,-0.1,1.1])
+    if scaling=='logit':
+        x_pts_to_graph_scaled = my_logit(x_pts_to_graph, eps=scaling_eps,
+                                         base=scaling_base)
+        y_pts_to_graph_scaled = my_logit(y_pts_to_graph, eps=scaling_eps,
+                                         base=scaling_base)
+        prec_int = np.max([-np.floor(np.min(x_pts_to_graph_scaled)),
+                    np.ceil(np.max(x_pts_to_graph_scaled))])
+        prec_int = np.max([prec_int, -np.floor(np.log10(scaling_eps))])
+        low_mark = -prec_int
+        high_mark = prec_int
+        if show_baseline:
+            plt.plot([low_mark, high_mark], [low_mark, high_mark],'k--')
+        # for i in range(len(y_pts_to_graph)):
+        plt.scatter(x_pts_to_graph_scaled, y_pts_to_graph_scaled,
+                    c=c, **kwargs)
+        locs, labels = plt.xticks()
+        labels = np.round(my_logistic(locs, base=scaling_base), decimals=4)
+        plt.xticks(locs, labels)
+        locs, labels = plt.yticks()
+        labels = np.round(my_logistic(locs, base=scaling_base), decimals=4)
+        plt.yticks(locs, labels)
+        if error_bars:
+            prob_range_mat = binom.interval(1-error_bar_alpha,bin_counts,x_pts_to_graph)/bin_counts
+            yerr_mat = (my_logit(prob_range_mat,eps=scaling_eps, base=scaling_base) - 
+                       my_logit(x_pts_to_graph, eps=scaling_eps, base=scaling_base))
+            yerr_mat[0,:] = -yerr_mat[0,:]
+            plt.errorbar(x_pts_to_graph_scaled, x_pts_to_graph_scaled, yerr=yerr_mat, capsize=5)
+        plt.axis([low_mark-.1, high_mark+.1, low_mark-.1, high_mark+.1])
+    if scaling!='logit':
+        if show_baseline:
+            plt.plot(np.linspace(0,1,100),(np.linspace(0,1,100)),'k--')
+        # for i in range(len(y_pts_to_graph)):
+        plt.scatter(x_pts_to_graph,y_pts_to_graph, c=c, **kwargs)
+        plt.axis([-0.1,1.1,-0.1,1.1])
+        if error_bars:
+            yerr_mat = binom.interval(1-error_bar_alpha,bin_counts,x_pts_to_graph)/bin_counts - x_pts_to_graph
+            yerr_mat[0,:] = -yerr_mat[0,:]
+            plt.errorbar(x_pts_to_graph, x_pts_to_graph, yerr=yerr_mat, capsize=5)
     plt.xlabel('Predicted')
     plt.ylabel('Empirical')
-    if error_bars:
-        yerr_mat = binom.interval(1-error_bar_alpha,pt_sizes,x_pts_to_graph)/pt_sizes - x_pts_to_graph
-        yerr_mat[0,:] = -yerr_mat[0,:]
-        plt.errorbar(x_pts_to_graph, x_pts_to_graph, yerr=yerr_mat, capsize=5)
     if show_histogram:
         plt.subplot(1,2,2)
         plt.hist(x,bins=bins)
-    return(x_pts_to_graph,y_pts_to_graph,pt_sizes)
+    out_dict = {}
+    out_dict['pred_probs'] = x_pts_to_graph
+    out_dict['emp_probs'] = y_pts_to_graph
+    out_dict['bin_counts'] = bin_counts
+    return(out_dict)
 
 def compact_logit(x, eps=.00001):
     import warnings

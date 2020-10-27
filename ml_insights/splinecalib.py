@@ -1,6 +1,7 @@
 import numpy as np
 from .calibration_utils import _natural_cubic_spline_basis_expansion
 from .calibration_utils import create_yeqx_bias_vectors, logreg_cv
+from .calibration_utils import my_logit, my_logistic
 import random
 import warnings
 import matplotlib.pyplot as plt
@@ -63,12 +64,13 @@ class SplineCalib(object):
 
     unity_prior : 
         If True, routine will add synthetic data along the axis y=x as
-        a "prior" distribution that favors that function.  Default is False.
+        a "prior" distribution that favors that function.  Default is True.
 
     unity_prior_weight : 
         The total weight of data points added when unity_prior
         is set to True.  Bigger values will force the calibration curve closer
-        to the line y=x.
+        to the line y=x. Default is 100, meaning the synthetic data in total
+        counts as much weight as 100 data points.
 
     unity_prior_gridsize : 
         The resolution of the grid used to create the
@@ -128,7 +130,7 @@ class SplineCalib(object):
     def __init__(self, penalty='l2', solver='default',
                  knot_sample_size = 30, add_knots = None,
                  reg_param_vec = 'default', cv_spline=5, random_state=42,
-                 unity_prior=False, unity_prior_gridsize=100, 
+                 unity_prior=True, unity_prior_gridsize=100, 
                  unity_prior_weight=100, max_iter=1000, tol=.0001,
                  logodds_scale=True, logodds_eps='auto', reg_prec=4,
                  force_knot_endpts=True):
@@ -418,23 +420,48 @@ class SplineCalib(object):
 
 
     def show_calibration_curve(self, class_num=None, resolution=.001,
-                               show_baseline=True):
+                               show_baseline=True, scaling='none',
+                               scaling_base=10, scaling_eps=.0001):
         """Plots the calibration curve as a function from [0,1] to [0,1]
 
         Parameters
         ----------
 
         resolution: The space between the plotted points on the x-axis.
+
+        show_baseline: Boolean - default=True.  Whether or not to show the line
+            y=x as a reference.
+
+        scaling: default is 'none'.  Alternative is 'logit' which scales the
+            curve to show more detail close to 0 and 1.  When using in tandem
+            with `plot_reliability_diagram` should be sure to use the same
+            scaling parameters.
+
+        scaling_eps: default is .0001.  Ignored unless scaling='logit'. This 
+            indicates the smallest meaningful positive probability you
+            want to consider.
+
+        scaling_base: default is 10. Ignored unless scaling='logit'. This
+            indicates the base used when scaling back and forth.  Matters
+            only in how it affects the automatic tick marks.
         """
         tvec = np.linspace(0,1,int(np.ceil(1/resolution))+1)
         avec = np.logspace(-16,-3,6)
         bvec = 1-avec
         tvec = np.unique(np.concatenate((tvec,avec,bvec)))
         if self.n_classes == 2:
-            plt.plot(tvec, self.calibrate(tvec))
-            if show_baseline:
-                plt.plot(tvec,tvec,'k--')
-            plt.axis([-0.1,1.1,-0.1,1.1])
+            if scaling=='none':
+                plt.plot(tvec, self.calibrate(tvec))
+                if show_baseline:
+                    plt.plot(tvec,tvec,'k--')
+                plt.axis([-0.1,1.1,-0.1,1.1])
+            elif scaling=='logit':
+                tvec_to_plot = my_logit(tvec, base=scaling_base)
+                y_to_plot = my_logit(self.calibrate(tvec), base=scaling_base)
+                plt.plot(tvec_to_plot, y_to_plot)
+                if show_baseline:
+                    plt.plot(tvec_to_plot,tvec_to_plot,'k--')
+
             plt.xlabel('Uncalibrated')
             plt.ylabel('Calibrated')
 
@@ -443,7 +470,10 @@ class SplineCalib(object):
         else:
             self.binary_splinecalibs[class_num].show_calibration_curve(
                                                     resolution=resolution,
-                                                    show_baseline=show_baseline)
+                                                    show_baseline=show_baseline,
+                                                    scaling=scaling,
+                                                    scaling_base=scaling_base,
+                                                    scaling_eps=scaling_eps)
 
     def transform(self, y_in):
         """alias for calibrate"""
