@@ -9,14 +9,14 @@ with open('README.rst') as readme_file:
 requirements = [
     "pandas>=0.23",
     "numpy>=1.16.0",
-    "matplotlib>=2.0.0"
-    "scikit-learn>=0.18.0",
-    "scipy>=1.0"
+    "matplotlib>=2.0.0",
+    "scikit-learn>=0.24.2",
+    "scipy>=1.6.0"
 ]
 
 setup(
     name='ml_insights',
-    version='0.1.6',
+    version='0.1.7',
     description="Package to calibrate and understand ML Models",
     long_description=readme,
     author="Brian Lucena / Ramesh Sampath",
