@@ -240,76 +240,171 @@ def prob_calibration_function_multiclass(truthvec, scoremat, verbose=False, **kw
         return probmat
     return calibrate_scores_multiclass, function_list
 
-def plot_prob_calibration(calib_fn, show_baseline=True, ax=None, **kwargs):
-    if ax is None:
-        ax = _gca()
-        fig = ax.get_figure()
-    ax.plot(np.linspace(0,1,100),calib_fn(np.linspace(0,1,100)),**kwargs)
-    if show_baseline:
-        ax.plot(np.linspace(0,1,100),(np.linspace(0,1,100)),'k--')
-    ax.axis([-0.1,1.1,-0.1,1.1])
-
-def my_logit(vec, base=np.exp(1), eps=1e-16):
-    vec = np.clip(vec, eps, 1-eps)
-    return (1/np.log(base)) * np.log(vec/(1-vec))
-
-def my_logistic(vec, base=np.exp(1)):
-    return 1/(1+base**(-vec))
-
-def plot_reliability_diagram(y,x,bins=np.linspace(0,1,21),
-                             show_baseline=True, error_bars=True,
-                             error_bar_alpha=.05, show_histogram=False,
-                             scaling='none', scaling_eps=.0001,
+def plot_reliability_diagram(y,
+                             x,
+                             bins=np.linspace(0,1,21),
+                             show_baseline=True,
+                             baseline_color="black",
+                             baseline_width=1,
+                             error_bars=True,
+                             error_bar_color='C0',
+                             error_bar_alpha=.05,
+                             error_bar_width=2,
+                             marker=".",
+                             marker_color='C1',
+                             marker_edge_color="C1",
+                             marker_size=50,
+                             scaling='none', 
+                             scaling_eps=.0001,
                              scaling_base=10, 
-                             c='red', **kwargs):
+                             cap_width=1,
+                             cap_size=5,
+                             show_histogram=False,
+                             bin_color="C0",
+                             bin_edge_color="black",  
+                             ax1_x_title="Predicted",
+                             ax1_y_title="Empirical",
+                             ax2_x_title="Predicted Scores",
+                             ax2_y_title="Count",
+                             ax_title_weight="normal",
+                             ax_title_size=12,
+                             title_size=16,
+                             title_weight='normal',
+                             reliability_title="Reliability Diagram",
+                             histogram_title="Probability Distribution",
+                             layout_pad=3.0,
+                             legend_names=['Perfect', 'Model', '95% CI'],
+                             legend_size='small',
+                             grid_color="#EEEEEE",
+                             grid_line_width=0.8,
+                             plot_style=None,
+                             **kwargs):
     """Plots a reliability diagram of predicted vs empirical probabilities.
-
     
     Parameters
     ----------
-    y: array-like, length (n_samples). The true outcome values as integers (0 or 1)
-
+    y: Array-like, length (n_samples). The true outcome values as integers (0 or 1)
+    
     x: The predicted probabilities, between 0 and 1 inclusive.
-
-    bins: array-like, the endpoints of the bins used to aggregate and estimate the
-        empirical probabilities.  Default is 20 equally sized bins
+    
+    bins: Array-like, the endpoints of the bins used to aggregate and estimate the
+        empirical probabilities.  Default is 20 equally sized bins.
         from 0 to 1, i.e. [0,0.05,0.1,...,.95, .1].
-
-    show_baseline: whether or not to print a dotted black line representing
-        y=x (perfect calibration).  Default is True
-
-    error_bars: whether to show error bars reflecting the confidence
+        
+    show_baseline: Whether or not to print a dotted line representing
+        y=x (perfect calibration).  Default is True.
+        
+    baseline_color: The color of the baseline. Default is black.
+    
+    baseline_width: The width of the baseline. Default is 1.
+    
+    error_bars: Whether to show error bars reflecting the confidence
         interval under the assumption that the input probabilities are
         perfectly calibrated. Default is True.
-
+        
+    error_bar_color: The color of the errorbar. Default is 'C0', matplotlib blue.   
     error_bar_alpha: The alpha value to use for the error_bars.  Default
         is .05 (a 95% CI).  Confidence intervals are based on the exact
         binomial distribution, not the normal approximation.
-
-    show_histogram: Whether or not to show a separate histogram of the
-        number of values in each bin.  Default is False
-
+        
+    error_bar_width: The width of the error bar lines. Default is 2.
+    
+    marker: The style of the marker. Default is '.'
+    
+    marker_color: The color of the marker. Default is 'C1', matplotlib orange.
+    
+    marker_size: The size of the marker. Default is 50.
+    
     scaling: Default is 'none'. Alternative is 'logit' which is useful for
         better examination of calibration near 0 and 1.  Values shown are
         on the scale provided and then tick marks are relabeled.
-
-    scaling_eps: default is .0001.  Ignored unless scaling='logit'. This 
+        
+    scaling_eps: Default is .0001.  Ignored unless scaling='logit'. This 
         indicates the smallest meaningful positive probability you
         want to consider.
-
-    scaling_base: default is 10. Ignored unless scaling='logit'. This
+        
+    scaling_base: Default is 10. Ignored unless scaling='logit'. This
         indicates the base used when scaling back and forth.  Matters
         only in how it affects the automatic tick marks.
-
-    c: color of the plotted points.  Default is 'red'.
-
+        
+    cap_size: The length of the error bar caps in points. Default is 5.
+    
+    show_histogram: Whether or not to show a separate histogram of the
+        number of values in each bin.  Default is False.
+        
+    bin_color: The color of the histogram bins. Default is 'C0', 
+        matplotlib blue.
+    
+    bin_edge_color: The color of the edges around the histogram bins. 
+        Default is 'black'.
+    
+    ax1_x_title: X-axis title for reliability plot. Default is 
+        "Predicted".
+    
+    ax1_y_title: Y-axis title for reliability plot. Default is 
+        "Empirical".
+    
+    ax2_x_title: X-axis title for histogram. Default is "Predicted 
+        Scores".
+    
+    ax2_y_title: Y-axis title for histobram. Default is "Count".
+    
+    ax_title_weight: The font weight for axes titles. Default 
+        is "normal".
+    
+    ax_title_size: The font size for the axes titles. Default 
+        is 12.
+    
+    title_size: The font size for the subplot titles. Default 
+        is 16.
+    
+    title_weight: The font weight for the subplot titles. Default 
+        is 'normal'.
+    
+    reliability_title: The title for the reliability plot. Default 
+        is "Reliability Diagram".
+    
+    histogram_title: The title for the histogram. Default is "Probability 
+        Distribution".
+    
+    layout_pad: Space to add between subplots to give y-axis title and 
+        labels room to breath. Default is 3.0.
+        
+    legend_names: List of names for the legend labels. Defaults to 
+        'Perfect', 'Model', '95% CI'.
+    
+    legend_size: 'xx-small', 'x-small', 'small', 'medium', 
+        'large', 'x-large', 'xx-large' or integer for the legend 
+        size. Defaults to 'small'.
+        
+    grid_color: The color of the grid. Default is "#EEEEEE".
+    
+    grid_line_width: The width of the gridlines. Default is 0.8.
+    
+    plot_style: Check available styles "plt.style.available".
+        ['default', 'classic', 'Solarize_Light2', '_classic_test_patch', 'bmh', 
+        'dark_background', 'fast', 'fivethirtyeight', 'ggplot', 'grayscale', 
+        'seaborn', 'seaborn-bright', 'seaborn-colorblind', 'seaborn-dark', 
+        'seaborn-dark-palette', 'seaborn-darkgrid', 'seaborn-deep', 'seaborn-muted', 
+        'seaborn-notebook', 'seaborn-pastel', 'seaborn-poster', 'seaborn-talk', 
+        'seaborn-ticks', 'seaborn-white','seaborn-whitegrid', 'tableau-colorblind10'] 
+        Defaults to None.
+        
     **kwargs: additional args to be passed to the plt.scatter matplotlib call.
-
+    
     Returns
     -------
     A dictionary containing the x and y points plotted (unscaled) and the 
         count in each bin.
     """
+    
+    # Set Plot Style
+    if plot_style is None:
+        None
+        
+    else:
+        plt.style.use(plot_style)
+
     digitized_x = np.digitize(x, bins)
     mean_count_array = np.array([[np.mean(y[digitized_x == i]),
                                   len(y[digitized_x == i]),
@@ -333,36 +428,84 @@ def plot_reliability_diagram(y,x,bins=np.linspace(0,1,21),
         if show_baseline:
             plt.plot([low_mark, high_mark], [low_mark, high_mark],'k--')
         # for i in range(len(y_pts_to_graph)):
-        plt.scatter(x_pts_to_graph_scaled, y_pts_to_graph_scaled,
-                    c=c, **kwargs)
+        plt.scatter(x_pts_to_graph_scaled, 
+                    y_pts_to_graph_scaled,
+                    c=marker_color,
+                    ec=marker_edge_color,
+                    s=marker_size, 
+                    zorder=3, 
+                    marker=marker, 
+                    **kwargs)
         locs, labels = plt.xticks()
         labels = np.round(my_logistic(locs, base=scaling_base), decimals=4)
         plt.xticks(locs, labels)
         locs, labels = plt.yticks()
         labels = np.round(my_logistic(locs, base=scaling_base), decimals=4)
         plt.yticks(locs, labels)
+        plt.grid(which='major', color=grid_color, linewidth=grid_line_width, zorder=1)
+        plt.legend(legend_names, loc='upper left', fontsize=legend_size)
         if error_bars:
             prob_range_mat = binom.interval(1-error_bar_alpha,bin_counts,x_pts_to_graph)/bin_counts
             yerr_mat = (my_logit(prob_range_mat,eps=scaling_eps, base=scaling_base) - 
                        my_logit(x_pts_to_graph, eps=scaling_eps, base=scaling_base))
             yerr_mat[0,:] = -yerr_mat[0,:]
-            plt.errorbar(x_pts_to_graph_scaled, x_pts_to_graph_scaled, yerr=yerr_mat, capsize=5)
+            plt.errorbar(x_pts_to_graph_scaled, 
+                         x_pts_to_graph_scaled,
+                         elinewidth=error_bar_width,
+                         ecolor=error_bar_color,
+                         yerr=yerr_mat,
+                         capthick=cap_width,
+                         capsize=cap_size,
+                         ls="none",
+                         zorder=2)
+            plt.legend(['y=x', 'Model', '95% CI'], loc='upper left', fontsize=legend_size)
         plt.axis([low_mark-.1, high_mark+.1, low_mark-.1, high_mark+.1])
+        plt.grid(which='major', color=grid_color, linewidth=grid_line_width, zorder=1)
+        plt.legend(legend_names, loc='upper left')
     if scaling!='logit':
         if show_baseline:
-            plt.plot(np.linspace(0,1,100),(np.linspace(0,1,100)),'k--')
+            plt.plot(np.linspace(0,1,100),(np.linspace(0,1,100)),'k--', color=baseline_color, linewidth=baseline_width, zorder=2)
         # for i in range(len(y_pts_to_graph)):
-        plt.scatter(x_pts_to_graph,y_pts_to_graph, c=c, **kwargs)
+        plt.scatter(x_pts_to_graph,
+                    y_pts_to_graph, 
+                    c=marker_color,
+                    ec=marker_edge_color,
+                    s=marker_size, 
+                    zorder=4, 
+                    marker=marker, 
+                    **kwargs)
         plt.axis([-0.1,1.1,-0.1,1.1])
+        plt.grid(which='major', color=grid_color, linewidth=grid_line_width, zorder=1)
+        plt.legend(legend_names, loc='upper left', fontsize=legend_size)
         if error_bars:
             yerr_mat = binom.interval(1-error_bar_alpha,bin_counts,x_pts_to_graph)/bin_counts - x_pts_to_graph
             yerr_mat[0,:] = -yerr_mat[0,:]
-            plt.errorbar(x_pts_to_graph, x_pts_to_graph, yerr=yerr_mat, capsize=5)
-    plt.xlabel('Predicted')
-    plt.ylabel('Empirical')
+            plt.errorbar(x_pts_to_graph, 
+                         x_pts_to_graph,
+                         elinewidth=error_bar_width,
+                         ecolor=error_bar_color,
+                         yerr=yerr_mat,
+                         capthick=cap_width,
+                         capsize=cap_size,
+                         ls="none",
+                         zorder=3)
+    plt.xlabel(ax1_x_title, fontsize=ax_title_size, fontweight=ax_title_weight)
+    plt.ylabel(ax1_y_title, fontsize=ax_title_size, fontweight=ax_title_weight)
+    plt.title(reliability_title, fontsize=title_size, fontweight=title_weight)
+    plt.grid(which='major', color=grid_color, linewidth=grid_line_width, zorder=1)
+    plt.legend(legend_names, loc='upper left', fontsize=legend_size)
     if show_histogram:
         plt.subplot(1,2,2)
-        plt.hist(x,bins=bins)
+        plt.hist(x,
+                 bins=bins, 
+                 ec=bin_edge_color,
+                 color=bin_color,
+                 zorder=2)
+        plt.xlabel(ax2_x_title, fontsize=ax_title_size, fontweight=ax_title_weight)
+        plt.ylabel(ax2_y_title, fontsize=ax_title_size, fontweight=ax_title_weight)
+        plt.title(histogram_title, fontsize=title_size, fontweight=title_weight)
+        plt.grid(which='major', color=grid_color, linewidth=grid_line_width, zorder=1)
+        plt.tight_layout(pad=layout_pad)
     out_dict = {}
     out_dict['pred_probs'] = x_pts_to_graph
     out_dict['emp_probs'] = y_pts_to_graph
