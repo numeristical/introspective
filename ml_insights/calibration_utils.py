@@ -240,6 +240,22 @@ def prob_calibration_function_multiclass(truthvec, scoremat, verbose=False, **kw
         return probmat
     return calibrate_scores_multiclass, function_list
 
+def plot_prob_calibration(calib_fn, show_baseline=True, ax=None, **kwargs):
+    if ax is None:
+        ax = _gca()
+        fig = ax.get_figure()
+    ax.plot(np.linspace(0,1,100),calib_fn(np.linspace(0,1,100)),**kwargs)
+    if show_baseline:
+        ax.plot(np.linspace(0,1,100),(np.linspace(0,1,100)),'k--')
+    ax.axis([-0.1,1.1,-0.1,1.1])
+
+def my_logit(vec, base=np.exp(1), eps=1e-16):
+    vec = np.clip(vec, eps, 1-eps)
+    return (1/np.log(base)) * np.log(vec/(1-vec))
+
+def my_logistic(vec, base=np.exp(1)):
+    return 1/(1+base**(-vec))
+
 def plot_reliability_diagram(y,
                              x,
                              bins=np.linspace(0,1,21),
@@ -347,7 +363,7 @@ def plot_reliability_diagram(y,
     ax2_x_title: X-axis title for histogram. Default is "Predicted 
         Scores".
     
-    ax2_y_title: Y-axis title for histobram. Default is "Count".
+    ax2_y_title: Y-axis title for histogram. Default is "Count".
     
     ax_title_weight: The font weight for axes titles. Default 
         is "normal".
@@ -426,8 +442,7 @@ def plot_reliability_diagram(y,
         low_mark = -prec_int
         high_mark = prec_int
         if show_baseline:
-            plt.plot([low_mark, high_mark], [low_mark, high_mark],'k--')
-        # for i in range(len(y_pts_to_graph)):
+            plt.plot([low_mark, high_mark], [low_mark, high_mark],'--', color=baseline_color, linewidth=baseline_width, zorder=2)
         plt.scatter(x_pts_to_graph_scaled, 
                     y_pts_to_graph_scaled,
                     c=marker_color,
@@ -464,7 +479,7 @@ def plot_reliability_diagram(y,
         plt.legend(legend_names, loc='upper left')
     if scaling!='logit':
         if show_baseline:
-            plt.plot(np.linspace(0,1,100),(np.linspace(0,1,100)),'k--', color=baseline_color, linewidth=baseline_width, zorder=2)
+            plt.plot(np.linspace(0,1,100),(np.linspace(0,1,100)),'--', color=baseline_color, linewidth=baseline_width, zorder=2)
         # for i in range(len(y_pts_to_graph)):
         plt.scatter(x_pts_to_graph,
                     y_pts_to_graph, 
