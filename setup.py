@@ -31,8 +31,6 @@ setup(
                  'ml_insights'},
     include_package_data=True,
     install_requires=requirements,
-    ext_modules=[setuptools.Extension("loss_fun_c", ["ml_insights/loss_fun_c.c"],
-                 include_dirs=[numpy.get_include()])],
 
     license="MIT license",
     zip_safe=False,
