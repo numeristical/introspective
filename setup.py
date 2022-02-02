@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from setuptools import setup
+import numpy
 
 with open('README.rst') as readme_file:
     readme = readme_file.read()
@@ -11,12 +12,13 @@ requirements = [
     "numpy>=1.16.0",
     "matplotlib>=2.0.0",
     "scikit-learn>=0.24.2",
-    "scipy>=1.6.0"
+    "scipy>=1.6.0",
+    "splinecalib>=0.0.2"
 ]
 
 setup(
     name='ml_insights',
-    version='0.1.8',
+    version='1.0.0',
     description="Package to calibrate and understand ML Models",
     long_description=readme,
     author="Brian Lucena / Ramesh Sampath",
@@ -29,6 +31,9 @@ setup(
                  'ml_insights'},
     include_package_data=True,
     install_requires=requirements,
+    ext_modules=[setuptools.Extension("loss_fun_c", ["ml_insights/loss_fun_c.c"],
+                 include_dirs=[numpy.get_include()])],
+
     license="MIT license",
     zip_safe=False,
     keywords='ml_insights',

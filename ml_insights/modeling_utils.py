@@ -312,3 +312,182 @@ def get_range_dict(df_in, max_pts=200):
             else: 
                 rd[col] = np.linspace(np.min(df_in[col]),np.max(df_in[col]),max_pts) 
     return rd
+
+def get_stratified_foldnums(y, num_folds, random_state=42):
+    """Given an outcome vector y, assigns each data point to a fold in a stratified manner.
+    
+    Assumes that y contains only integers between 0 and num_classes-1
+    """
+    np.random.seed(random_state)
+    fn_vec = -1 * np.ones(len(y))
+    for y_val in np.unique(y):
+        curr_yval_indices = np.where(y==y_val)[0]
+        np.random.shuffle(curr_yval_indices)
+        index_indices = np.round((len(curr_yval_indices)/num_folds)*np.arange(num_folds+1)).astype(int)
+        for i in range(num_folds):
+            fold_to_assign = i if ((y_val%2)==0) else (num_folds-i-1)
+            fn_vec[curr_yval_indices[index_indices[i]:index_indices[i+1]]] = fold_to_assign
+    return(fn_vec)
+
+def cv_predictions(model, X, y, num_cv_folds=5, stratified=True, clone_model=False, random_state=42):
+    """Creates a vector of cross-validated predictions given the model and data.
+
+   This function takes a model and repeatedly fits it on all but one fold and
+   then makes predictions (using `predict_proba`) on the remaining fold.  It
+   returns the full set of cross-validated predictions.
+
+    Parameters
+    ----------
+    model: The model to be used for the fit and predict_proba calls.  If clone_model
+        is True, model will be copied before it is refit, and the original will not 
+        be modified.  If clone_model is False, model will be refit and changed.
+        The `clone_model` option may not work outside of sklearn.
+
+    X: The feature matrix to be used for the cross-validated predictions
+
+    y: The outcome vector to be used for cross-validated predictions.  Should
+        contain integers from 0 to num_classes-1.
+
+    num_cv_folds: The number of folds to create when doing the cross-validated
+        fit and predict calls.  More folds will take more time but may yield 
+        better results.  Default is 5.
+
+    stratified: Boolean variable indicating whether or not to assign points
+        to folds in a stratified manner.  Default is True.
+
+    clone_model: Whether to use the sklearn "clone" function to copy the model
+        before it is refit.  If False, the model object will be modified.  The 
+        setting True may not work outside of sklearn.  In this case it is
+        best to make an identical (before fitting) model object and pass that
+        as the argument.
+
+    random_state: A random_state to pass to the fold selection.
+
+    Returns
+    ---------------------
+
+    A matrix of size (nrows, ncols) where nrows is the number of rows in X and
+    ncols is the number of classes as indicated by y.
+    """
+    if stratified:
+        foldnum_vec = get_stratified_foldnums(y, num_cv_folds, random_state)
+    else:
+        foldnum_vec = np.floor(np.random.uniform(size=X.shape[0])*num_cv_folds).astype(int)
+    model_to_fit = clone(model) if clone_model else model
+    n_classes = np.max(y).astype(int)+1
+    out_probs = np.zeros((X.shape[0],n_classes))
+    for fn in range(num_cv_folds):
+        X_tr = X.loc[foldnum_vec!=fn]
+        y_tr = y[foldnum_vec!=fn]
+        X_te = X.loc[foldnum_vec==fn]
+        model_to_fit.fit(X_tr, y_tr)
+        out_probs[foldnum_vec==fn,:] = model_to_fit.predict_proba(X_te)
+    
+    return(out_probs)
+
+def get_stratified_foldnums(y, num_folds, random_state=42):
+    """Given an outcome vector y, assigns each data point to a fold in a stratified manner.
+    
+    Assumes that y contains only integers between 0 and num_classes-1
+    """
+    np.random.seed(random_state)
+    fn_vec = -1 * np.ones(len(y))
+    for y_val in np.unique(y):
+        curr_yval_indices = np.where(y==y_val)[0]
+        np.random.shuffle(curr_yval_indices)
+        index_indices = np.round((len(curr_yval_indices)/num_folds)*np.arange(num_folds+1)).astype(int)
+        for i in range(num_folds):
+            fold_to_assign = i if ((y_val%2)==0) else (num_folds-i-1)
+            fn_vec[curr_yval_indices[index_indices[i]:index_indices[i+1]]] = fold_to_assign
+    return(fn_vec)
+
+def penalized_ll_fun(beta, X, y, lam=0, weight_vec=None, max_exp=50):
+    betaX = X.dot(beta)
+    mask_1a = (betaX >= -max_exp)
+    mask_1b = (betaX < -max_exp)
+    mask_2a = (betaX <=max_exp)
+    mask_2b = (betaX > max_exp)
+    ll_term = 0
+    if weight_vec is None:
+        ll_term += np.sum(y[mask_1a]*np.log(np.exp(-betaX[mask_1a])+1))
+        ll_term += np.sum(y[mask_1b]*(-betaX[mask_1b]))
+        ll_term += np.sum((1-y[mask_2a])*np.log(np.exp(betaX[mask_2a])+1))
+        ll_term +=  np.sum((1-y[mask_2b])*(betaX[mask_2b]))
+    else:
+        ll_term += np.sum(weight_vec[mask_1a]*y[mask_1a]*np.log(np.exp(-betaX[mask_1a])+1))
+        ll_term += np.sum(weight_vec[mask_1b]*y[mask_1b]*(-betaX[mask_1b]))
+        ll_term += np.sum(weight_vec[mask_2a]*(1-y[mask_2a])*np.log(np.exp(betaX[mask_2a])+1))
+        ll_term +=  np.sum(weight_vec[mask_2b]*(1-y[mask_2b])*(betaX[mask_2b]))
+    reg_term = lam*np.mean(beta*beta)
+    return(ll_term/X.shape[0]+reg_term)
+
+def logreg_cv_direct(X, y, num_folds, reg_param_vec, method, max_iter,
+              tol, weightvec=None, random_state=42, reg_prec=4, ps_mode='fast'):
+    """Routine to find the best fitting penalized Logistic Regression.
+
+    User must provide, the X, y, number of folds, range of `lambda` parameter
+    and other specs for the optimization.
+    """
+    fn_vec = get_stratified_foldnums(y, num_folds, random_state=random_state)
+    preds = np.zeros(len(y))
+    ll_vec = np.zeros(len(reg_param_vec))
+    start_coef_vec = np.zeros(X.shape[1])
+    for i,lam_val in enumerate(reg_param_vec):
+        num_folds_to_search = 1 if ps_mode=='fast' else num_folds
+        for fn in range(num_folds_to_search):
+            X_tr = X[fn_vec!=fn,:]
+            y_tr = y[fn_vec!=fn]
+            X_te = X[fn_vec==fn,:]
+            if weightvec is not None:
+                weightvec_tr = weightvec[fn_vec!=fn]
+                opt_res = sp.optimize.minimize(pen_ll_fun_grad,
+                                               start_coef_vec,
+                                                (X_tr, y_tr,
+                                                 float(lam_val), weightvec_tr),
+                                                method=method,
+                                                jac=True,
+                                                options={"gtol": tol,
+                                                 "maxiter": max_iter})
+            else:
+                opt_res = sp.optimize.minimize(pen_ll_fun_grad,
+                                               start_coef_vec,
+                                                (X_tr, y_tr,
+                                                 float(lam_val)),
+                                                method=method,
+                                                jac=True,
+                                                options={"gtol": tol,
+                                                 "maxiter": max_iter})
+            coefs = opt_res.x
+            if not opt_res.success:
+                warnings.warn("Optimization did not converge for lambda={}".format(lam_val))
+            preds[fn_vec==fn] = 1/(1+np.exp(-X_te.dot(coefs)))
+        if ps_mode=='fast':
+            ll_vec[i]=my_log_loss(y[fn_vec==0],preds[fn_vec==0])
+        else:
+            ll_vec[i]=my_log_loss(y,preds)
+    best_index = np.argmin(np.round(ll_vec,decimals=reg_prec))
+    best_lam_val = reg_param_vec[best_index]
+    best_loss = ll_vec[best_index]
+    if weightvec is not None:
+        opt_res = sp.optimize.minimize(pen_ll_fun_grad,
+                               start_coef_vec,
+                                (X_tr, y_tr,
+                                 best_lam_val, weightvec_tr),
+                                jac=True,
+                                options={"gtol": tol,
+                                "maxiter": max_iter})
+    else:
+        opt_res = sp.optimize.minimize(pen_ll_fun_grad,
+                               start_coef_vec,
+                                (X_tr, y_tr,
+                                 best_lam_val),
+                                jac=True,
+                                options={"gtol": tol,
+                                 "maxiter": max_iter})
+    if not opt_res.success:
+        warn_str = """Optimization did not converge for final fit.
+                    This is usually due to numerical issues.
+                    Consider in"""
+        warnings.warn("".format(lam_val))
+
+    return(best_lam_val, ll_vec, opt_res)

@@ -35,11 +35,11 @@ def cv_column_shap(xgbcv, X_pr, fn):
     return results
     
 def predict_reasons_cv(xgbcv, X_pr, fn, reason_map, thresh, delimiter=';'):
-	shap_val_mat = cv_column_shap(xgbcv, X_pr, fn)
-	df_shap_val = pd.DataFrame(shap_val_mat[:,:-1], columns = X_pr.columns)
-	df_reason_scores = consolidate_reason_scores(df_shap_val,reason_map)
-	reason_list_vec = get_reason_codes(df_reason_scores, thresh, delimiter=delimiter)
-	return(reason_list_vec)
+    shap_val_mat = cv_column_shap(xgbcv, X_pr, fn)
+    df_shap_val = pd.DataFrame(shap_val_mat[:,:-1], columns = X_pr.columns)
+    df_reason_scores = consolidate_reason_scores(df_shap_val,reason_map)
+    reason_list_vec = get_reason_codes(df_reason_scores, thresh, delimiter=delimiter)
+    return(reason_list_vec)
 
 def predict_reason_strings(xgbmodel, X_pr, reason_map, thresh, delimiter=';', direction='greater'):
     X_pr_dmat = xgb.DMatrix(X_pr)
