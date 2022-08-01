@@ -412,6 +412,7 @@ def plot_reliability_diagram(y,
                              error_bar_color='C0',
                              error_bar_alpha=.05,
                              error_bar_width=2,
+                             ci_ref="axis",
                              marker=".",
                              marker_color='C1',
                              marker_edge_color="C1",
@@ -470,7 +471,12 @@ def plot_reliability_diagram(y,
         binomial distribution, not the normal approximation.
         
     error_bar_width: The width of the error bar lines. Default is 2.
-    
+
+    ci_ref: The confidence interval point of reference. If 'axis', the
+        confidence interval will be computed around the null hypothesis of
+        perfect calibration. If 'point', the confidence intervals will be
+        computed around the estimated probability. Default is 'axis'.
+
     marker: The style of the marker. Default is '.'
     
     marker_color: The color of the marker. Default is 'C1', matplotlib orange.
@@ -606,19 +612,34 @@ def plot_reliability_diagram(y,
         plt.grid(which='major', color=grid_color, linewidth=grid_line_width, zorder=1)
         plt.legend(legend_names, loc='upper left', fontsize=legend_size)
         if error_bars:
-            prob_range_mat = binom.interval(1-error_bar_alpha,bin_counts,x_pts_to_graph)/bin_counts
-            yerr_mat = (my_logit(prob_range_mat,eps=scaling_eps, base=scaling_base) - 
-                       my_logit(x_pts_to_graph, eps=scaling_eps, base=scaling_base))
-            yerr_mat[0,:] = -yerr_mat[0,:]
-            plt.errorbar(x_pts_to_graph_scaled, 
-                         x_pts_to_graph_scaled,
-                         elinewidth=error_bar_width,
-                         ecolor=error_bar_color,
-                         yerr=yerr_mat,
-                         capthick=cap_width,
-                         capsize=cap_size,
-                         ls="none",
-                         zorder=2)
+            if ci_ref == "axis":
+                prob_range_mat = binom.interval(1-error_bar_alpha,bin_counts,x_pts_to_graph)/bin_counts
+                yerr_mat = (my_logit(prob_range_mat, eps=scaling_eps, base=scaling_base) -
+                           my_logit(x_pts_to_graph, eps=scaling_eps, base=scaling_base))
+                yerr_mat[0,:] = -yerr_mat[0,:]
+                plt.errorbar(x_pts_to_graph_scaled,
+                             x_pts_to_graph_scaled,
+                             elinewidth=error_bar_width,
+                             ecolor=error_bar_color,
+                             yerr=yerr_mat,
+                             capthick=cap_width,
+                             capsize=cap_size,
+                             ls="none",
+                             zorder=2)
+            elif ci_ref == "point":
+                prob_range_mat = binom.interval(1-error_bar_alpha,bin_counts,y_pts_to_graph)/bin_counts
+                yerr_mat = (my_logit(prob_range_mat, eps=scaling_eps, base=scaling_base) -
+                           my_logit(y_pts_to_graph, eps=scaling_eps, base=scaling_base))
+                yerr_mat[0,:] = -yerr_mat[0,:]
+                plt.errorbar(x_pts_to_graph_scaled,
+                             y_pts_to_graph_scaled,
+                             elinewidth=error_bar_width,
+                             ecolor=error_bar_color,
+                             yerr=yerr_mat,
+                             capthick=cap_width,
+                             capsize=cap_size,
+                             ls="none",
+                             zorder=2)
             plt.legend(['y=x', 'Model', '95% CI'], loc='upper left', fontsize=legend_size)
         plt.axis([low_mark-.1, high_mark+.1, low_mark-.1, high_mark+.1])
         plt.grid(which='major', color=grid_color, linewidth=grid_line_width, zorder=1)
@@ -639,17 +660,30 @@ def plot_reliability_diagram(y,
         plt.grid(which='major', color=grid_color, linewidth=grid_line_width, zorder=1)
         plt.legend(legend_names, loc='upper left', fontsize=legend_size)
         if error_bars:
-            yerr_mat = binom.interval(1-error_bar_alpha,bin_counts,x_pts_to_graph)/bin_counts - x_pts_to_graph
-            yerr_mat[0,:] = -yerr_mat[0,:]
-            plt.errorbar(x_pts_to_graph, 
-                         x_pts_to_graph,
-                         elinewidth=error_bar_width,
-                         ecolor=error_bar_color,
-                         yerr=yerr_mat,
-                         capthick=cap_width,
-                         capsize=cap_size,
-                         ls="none",
-                         zorder=3)
+            if ci_ref == "axis":
+                yerr_mat = binom.interval(1-error_bar_alpha,bin_counts,x_pts_to_graph)/bin_counts - x_pts_to_graph
+                yerr_mat[0,:] = -yerr_mat[0,:]
+                plt.errorbar(x_pts_to_graph,
+                             x_pts_to_graph,
+                             elinewidth=error_bar_width,
+                             ecolor=error_bar_color,
+                             yerr=yerr_mat,
+                             capthick=cap_width,
+                             capsize=cap_size,
+                             ls="none",
+                             zorder=3)
+            elif ci_ref == "point":
+                yerr_mat = binom.interval(1-error_bar_alpha,bin_counts,y_pts_to_graph)/bin_counts - y_pts_to_graph
+                yerr_mat[0,:] = -yerr_mat[0,:]
+                plt.errorbar(x_pts_to_graph,
+                             y_pts_to_graph,
+                             elinewidth=error_bar_width,
+                             ecolor=error_bar_color,
+                             yerr=yerr_mat,
+                             capthick=cap_width,
+                             capsize=cap_size,
+                             ls="none",
+                             zorder=3)
     plt.xlabel(ax1_x_title, fontsize=ax_title_size, fontweight=ax_title_weight)
     plt.ylabel(ax1_y_title, fontsize=ax_title_size, fontweight=ax_title_weight)
     plt.title(reliability_title, fontsize=title_size, fontweight=title_weight)
