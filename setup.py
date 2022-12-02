@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 from setuptools import setup
-import numpy
 
 with open('README.rst') as readme_file:
     readme = readme_file.read()
