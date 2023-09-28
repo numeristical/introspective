@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from scipy.stats import beta, binom
 from sklearn.metrics import precision_recall_curve
 from sklearn.base import clone
+import warnings
 
 def plot_pr_curve(truth_vec, score_vec,
                   x_axis='precision', **kwargs):
@@ -141,7 +142,10 @@ def histogram_pair(value_vec, binary_vec, bins, smoothing_const=.01,
 def ice_plot(model, base_data, column_names, range_pts,
              show_base_pt=True, show_nan=False,
              pred_fn='predict_proba', class_num=1, figsize='auto',
-             plots_per_row=3, y_scaling='none'):
+             plots_per_row=3, auto_plot_width=4.0, auto_plot_height=3.0,
+             y_scaling='none', show_hist=False,
+             data_for_hist=None, hist_color='gray', hist_alpha=.4,
+             hist_rel_height=.7):
     """Generates an ICE plot for a model and data points.
 
     ICE (Individual Conditional Expectation) plots are a tool for
@@ -212,10 +216,43 @@ def ice_plot(model, base_data, column_names, range_pts,
         How many plots to put in a single row, when plotting multiple
         columns.
 
+    auto_plot_width : float, default is 4.0
+        How wide to make each plot when figsize is set to 'auto'.
+        Ignored otherwise
+
+    auto_plot_height : float, default is 3.0
+        How high to make each plot when figsize is set to 'auto'.
+        Ignored otherwise
+
     y_scaling : 'none', 'logit', default is 'none'
         If set to 'logit', the model output will be converted to log odds
         scale before plotting.  This is often useful when working
         with probabilities, particularly small ones.
+
+    show_hist : boolean, default is False
+        Whether to show histograms in the background for each plot.  If
+        set to true, an associated dataframe with the appropriate column
+        names must be provided in `data_for_hist` (this is typically)
+        the training data for the model.
+
+    data_for_hist : dataframe, default is None
+        The data to be used for the background histograms.  This is 
+        usually the training data for the associated model.  Ignored
+        if `show_hist` is False
+
+    hist_color : str, default is 'gray'
+        The color of the background histogram, passed to matplotlib.
+
+    hist_alpha : float, between 0 and 1, default is 0.4
+        The transparency level of the background histogram.  Closer to 1
+        gives a darker, more opaque histogram while closer to 0 is 
+        lighter and more transparent.
+
+    hist_rel_height : float, between 0 and 1, default is 0.7
+        The height of the histogram (tallest bar) as a percentage of the
+        y-axis limits.  Default is 0.7, meaning the tallest bar will rise
+        70% of the way up the graph.  Smaller numbers will make the histogram
+        shorter, larger numbers make it taller.
  """
     if type(base_data)==pd.core.series.Series:
         base_data = pd.DataFrame(base_data).swapaxes('index', 'columns')
@@ -230,13 +267,14 @@ def ice_plot(model, base_data, column_names, range_pts,
     plots_per_row = int(np.minimum(num_plots, plots_per_row))
     num_fig_rows = int(np.ceil(num_plots/plots_per_row))
     if ((type(figsize)==str) and (figsize=='auto')):
-        figsize=(4*plots_per_row, 3*num_fig_rows)
+        figsize=(auto_plot_width*plots_per_row, auto_plot_height*num_fig_rows)
     plt.figure(figsize=figsize)
     for i,column in enumerate(column_names):
         plt.subplot(num_fig_rows, plots_per_row, i+1)
         for dr in base_data.iterrows():
             data_row = dr[1]
             rp = range_pts[column]
+            has_nan = np.any(np.isnan(rp))
             pred_df = pd.DataFrame(columns=data_row.index)
             pred_df.loc[0] = data_row.copy()
             pred_df = pd.concat([pred_df]*len(rp), ignore_index=True)
@@ -271,7 +309,81 @@ def ice_plot(model, base_data, column_names, range_pts,
                            xmin=rp[0],
                            xmax=rp[int(np.floor(len(rp)/4+1))],
                            linestyle='dotted', color=p[0].get_color())
+        if show_hist:
+            if data_for_hist is None:
+                warnings.warn("Must specify data_for_hist to show histograms")
+                return(None)
+            ylims = plt.gca().get_ylim()
+            approx_centerpts = rp[~np.isnan(rp)]
+            hist_bins = centerpts_to_binpts(approx_centerpts)
+            pct_heights, bp = np.histogram(data_for_hist[column], bins=hist_bins, density=True)
+            max_pct_height = np.max(pct_heights)
+            heightvec = pct_heights * (ylims[1]-ylims[0]) * (hist_rel_height/max_pct_height)
+            barwidths = hist_bins[1:]-hist_bins[:-1]
+            centerpts = (hist_bins[1:]+hist_bins[:-1])/2
+            plt.bar(x = centerpts, height=heightvec, width=barwidths,
+                    bottom=ylims[0], alpha=hist_alpha, color=hist_color)
 
+
+def get_range_dict(df_in, max_pts=200, min_quantile=None, max_quantile=None):
+    """Get reasonable ranges for all columns for ICE plot.
+
+    This function looks at a dataframe, and generates numpy arrays
+    for each column based on the min.
+
+    Parameters
+    ----------
+
+    df_in : DataFrame
+        A dataframe containing the relevant columns.
+
+    max_pts : int, default is 200
+        For both numerical and categorical (string) data,  if the 
+        number of unique values is less than max_pts, it will choose
+        all unique values.  Otherwise, for numerical data it will
+        choose max_pts values linearly spaced between the min and max
+        values in df and for categorical (string) data, it will choose
+        the max_pts most common unique values.
+        
+    min_quantile: float, default is None
+        The quantile of the data to use for the minimum point.  Default
+        is None, which means to just use the min.  This may be a poor 
+        choice if there is a very low outlier value.
+        
+    max_quantile: float, default is None
+        Analogous to min_quantile.
+
+
+    Returns
+    -------
+
+    rd : dict
+        A dictionary with the column names as keys and numpy arrays as
+        values. This dictionary can then be used as the "range_dict"
+        in the `ice_plot` function
+
+    """
+    rd = {}
+    for col in df_in.columns:
+        vals = df_in[col]
+        has_nan = np.any(np.isnan(vals))
+        if df_in.dtypes[col] == 'O':
+            rd[col] = np.array(vals.value_counts().index[:max_pts])
+        else:
+            left_val = np.min(vals) if min_quantile is None else np.nanquantile(vals, min_quantile)
+            right_val = np.max(vals) if max_quantile is None else np.nanquantile(vals, max_quantile)
+            mask = (vals>=left_val) & (vals<=right_val)
+            unique_vals = np.unique(vals[mask])
+            if len(unique_vals) < max_pts:
+                rd[col] = unique_vals
+            else: 
+                vec = np.linspace(left_val,right_val,max_pts)
+                if has_nan:
+                    rd[col] = np.concatenate((vec,[np.nan]))
+                else:
+                    rd[col] = vec
+                
+    return rd
 def get_range_dict(df_in, max_pts=200):
     """Get reasonable ranges for all columns for ICE plot.
 
@@ -714,3 +826,8 @@ def my_logit(vec, base=np.exp(1), eps=1e-16):
 def my_logistic(vec, base=np.exp(1)):
     return 1/(1+base**(-vec))
 
+def centerpts_to_binpts(pts):
+    bins1 = (pts[1:] + pts[:-1])/2
+    leftpt = bins1[0] + 2*(pts[0]-bins1[0])
+    rightpt = bins1[-1] + 2*(pts[-1]-bins1[-1])
+    return(np.concatenate(([leftpt],bins1,[rightpt])))

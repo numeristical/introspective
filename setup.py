@@ -12,12 +12,12 @@ requirements = [
     "matplotlib>=2.0.0",
     "scikit-learn>=0.24.2",
     "scipy>=1.6.0",
-    "splinecalib>=0.0.2"
+    "splinecalib>=0.0.6"
 ]
 
 setup(
     name='ml_insights',
-    version='1.0.2',
+    version='1.0.3',
     description="Package to calibrate and understand ML Models",
     long_description=readme,
     author="Brian Lucena / Ramesh Sampath",
