@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools >= 77.0.3"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ml_insights"
+version = "1.1.0"
+dependencies = [
+    "pandas>=0.23",
+    "numpy>=1.23.5",
+    "matplotlib>=2.0.0",
+    "scikit-learn>=0.24.2",
+    "scipy>=1.6.0",
+    "splinecalib>=0.0.13"
+]
+authors = [
+  { name="Brian Lucena / Ramesh Sampath", email="brian@numeristical.com" },
+]
+description = "Package to calibrate and understand ML Models"
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+license = "MIT"
+license-files = ["LICEN[CS]E*"]
+
+[project.urls]
+Homepage = "https://github.com/numeristical/introspective"
+Issues = "https://github.com/numeristical/introspective/issues"
